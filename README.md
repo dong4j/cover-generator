@@ -36,6 +36,7 @@ npm test
 - `GET /cover` 或 `GET /cover/svg`：生成封面（默认模板 `v1`）
 - `GET /cover/svg/v1`：显式指定模板 `v1`
 - `GET /cover/svg/v2`：显式指定模板 `v2`（左侧大头像 + 右侧卡片文案）
+- `GET /cover/svg/v3`：显式指定模板 `v3`（纯背景大标题风格）
 - `POST /cover...`：同字段，JSON body
 
 返回类型：`image/svg+xml`。
@@ -61,6 +62,14 @@ npm test
 `v2` 的输入字段与 `v1` 基本一致（仍然支持 `title/subtitle/author/seed/width/height/background/color/accent/avatarEmoji/avatarUrl`），但布局不同：
 - 左侧：大头像（emoji/头像/占位符）
 - 右侧：白色（或浅色）卡片，内含标题/副标题/作者
+
+## v3 说明
+
+`v3` 的输入字段与 `v1/v2` 一致，布局为：
+- 纯色/渐变背景（颜色逻辑同 v1/v2：不传 `color` 时默认随机暖色渐变，可用 `background=solid|gradient|auto` 控制）
+- 左上角头像（emoji/头像/占位符）
+- 大标题（白字、左对齐，自动换行/缩放）
+- 左下角作者
 
 ## 示例
 
@@ -91,6 +100,9 @@ curl -X POST "http://localhost:3000/cover/svg/v1" \
 
 # v2（左头像 + 右卡片）
 curl "http://localhost:3000/cover/svg/v2?title=Hello&author=@dong4j&avatarEmoji=%F0%9F%91%8B&seed=12" > cover.svg
+
+# v3（纯背景大标题）
+curl "http://localhost:3000/cover/svg/v3?title=%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%EF%BC%9A%E5%A6%82%E4%BD%95%E5%9C%A8%20IntelliAI%20Engine%20%E4%B8%AD%E4%BC%98%E9%9B%85%E9%9B%86%E6%88%90%E9%9D%9E%E6%A0%87%E5%87%86%E5%8D%8F%E8%AE%AE%E7%9A%84%20AI%20%E6%9C%8D%E5%8A%A1&author=%40dong4j&avatarEmoji=%F0%9F%91%8B&seed=2025" > cover.svg
 ```
 
 ## 项目结构（如何理解它）
@@ -100,6 +112,7 @@ curl "http://localhost:3000/cover/svg/v2?title=Hello&author=@dong4j&avatarEmoji=
 - `src/coverGenerator/exporter.js`：模板注册与调度（当前支持 `v1`、`v2`）。
 - `src/coverGenerator/templates/v1.js`：`v1` 模板实现，把 options 渲染成 SVG 字符串。
 - `src/coverGenerator/templates/v2.js`：`v2` 模板实现（左侧大头像 + 右侧卡片）。
+- `src/coverGenerator/templates/v3.js`：`v3` 模板实现（纯背景大标题）。
 - `src/coverGenerator/shapeEngine.js`：小型 SVG 组件（例如头像渲染）。
 - `src/coverGenerator/typographyEngine.js`：文本工具（XML 转义、基础换行）。
 - `src/coverGenerator/utils.js`：seed/随机数等通用工具（可复现的 PRNG）。

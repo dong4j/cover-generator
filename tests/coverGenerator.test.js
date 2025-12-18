@@ -96,3 +96,23 @@ test("v2 without color uses gradient background", () => {
   assert.match(svg, /<linearGradient\b/);
   assert.match(svg, /fill="url\(#cover-v2-[0-9a-f]+-bgGradient\)"/i);
 });
+
+test("v3 template returns svg", () => {
+  const svg = generateCoverSvg(
+    { title: "Big Title", author: "A", seed: 20 },
+    {},
+    "v3"
+  );
+  assert.match(svg, /^<\?xml\b/);
+  assert.match(svg, /cover-v3-/);
+});
+
+test("v3 without color uses gradient background", () => {
+  const svg = generateCoverSvg(
+    { title: "V3 Gradient", author: "A", seed: 21 },
+    {},
+    "v3"
+  );
+  assert.match(svg, /<linearGradient\b/);
+  assert.match(svg, /fill="url\(#cover-v3-[0-9a-f]+-bgGradient\)"/i);
+});

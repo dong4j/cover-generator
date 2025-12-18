@@ -51,7 +51,7 @@ function buildCoverOptions(query, body, templateFromPath) {
   const options = parseOptions(query, body);
   if (templateFromPath) options.template = templateFromPath;
 
-  const allowedTemplates = new Set(["v1", "v2"]);
+  const allowedTemplates = new Set(["v1", "v2", "v3"]);
   if (!allowedTemplates.has(options.template)) options.template = "v1";
 
   options.seed = normalizeSeed(

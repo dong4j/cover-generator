@@ -259,14 +259,10 @@ function renderTemplateV1(options) {
   </filter>`;
 
   const bgMode = normalizeV1BackgroundMode(options);
+  // Align with v2/v3: when no `color` is provided, default to deterministic warm gradient
+  // unless explicitly forced to solid.
   const resolvedMode =
-    options.color || bgMode === "solid"
-      ? "solid"
-      : bgMode === "gradient"
-        ? "gradient"
-        : rng() < 0.45
-          ? "gradient"
-          : "solid";
+    options.color || bgMode === "solid" ? "solid" : bgMode === "gradient" ? "gradient" : "gradient";
 
   const bgSolid = options.color || randomChoice(WARM_COLORS, rng);
   const bgA = randomChoice(WARM_COLORS, rng);
