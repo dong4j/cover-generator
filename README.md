@@ -49,9 +49,10 @@ npm test
 | `subtitle` | string | empty | 副标题/摘要，可选。 |
 | `author` | string | `Anonymous` | 作者占位符，可传任意字符串（如 `@dong4j`）。 |
 | `seed` | number/string | hash(title+author+template) | 控制可复现随机；同 seed+输入 输出一致。 |
-| `width` | number | 1600 | 300–4000。 |
-| `height` | number | 900 | 300–4000。 |
+| `width` | number | 1200 | 300–4000。 |
+| `height` | number | 630 | 300–4000。 |
 | `background` | string | `auto` | `auto` \| `solid` \| `gradient`。`auto` 会在暖色系纯色/渐变中随机选择。 |
+| `texture` | string | empty | 背景纹理叠加：empty \| `grid` \| `graph` \| `dots`；不传则不叠加。 |
 | `color` | string | warm auto | 背景主色；传了则固定背景为纯色（不走渐变随机）。 |
 | `accent` | string | light auto | 卡片底色；不传则随机浅色。 |
 | `avatarEmoji` | string | empty | 单个 emoji；优先于 `avatarUrl`。 |
@@ -103,6 +104,15 @@ curl "http://localhost:3000/cover/svg/v2?title=Hello&author=@dong4j&avatarEmoji=
 
 # v3（纯背景大标题）
 curl "http://localhost:3000/cover/svg/v3?title=%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%EF%BC%9A%E5%A6%82%E4%BD%95%E5%9C%A8%20IntelliAI%20Engine%20%E4%B8%AD%E4%BC%98%E9%9B%85%E9%9B%86%E6%88%90%E9%9D%9E%E6%A0%87%E5%87%86%E5%8D%8F%E8%AE%AE%E7%9A%84%20AI%20%E6%9C%8D%E5%8A%A1&author=%40dong4j&avatarEmoji=%F0%9F%91%8B&seed=2025" > cover.svg
+
+# texture=grid（细网格叠加）
+curl "http://localhost:3000/cover/svg/v3?title=Grid%20Overlay&author=%40dong4j&seed=101&texture=grid" > cover.svg
+
+# texture=graph（主/次网格叠加）
+curl "http://localhost:3000/cover/svg/v3?title=Graph%20Overlay&author=%40dong4j&seed=102&texture=graph" > cover.svg
+
+# texture=dots（点阵叠加）
+curl "http://localhost:3000/cover/svg/v3?title=Dots%20Overlay&author=%40dong4j&seed=103&texture=dots" > cover.svg
 ```
 
 ## 项目结构（如何理解它）

@@ -14,9 +14,10 @@ const defaultOptions = {
   author: "Anonymous",
   template: "v1",
   seed: undefined,
-  width: 1600,
-  height: 900,
+  width: 1200,
+  height: 630,
   background: "auto", // auto | solid | gradient
+  texture: "", // empty | grid | graph | dots
   color: undefined,
   accent: undefined,
   avatarUrl: "",
@@ -37,6 +38,7 @@ function parseOptions(query, body) {
   if (payload.color) options.color = String(payload.color);
   if (payload.accent) options.accent = String(payload.accent);
   if (payload.background) options.background = String(payload.background);
+  if (payload.texture) options.texture = String(payload.texture);
   if (payload.seed !== undefined) options.seed = payload.seed;
 
   const width = parseInt(payload.width, 10);

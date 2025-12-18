@@ -116,3 +116,34 @@ test("v3 without color uses gradient background", () => {
   assert.match(svg, /<linearGradient\b/);
   assert.match(svg, /fill="url\(#cover-v3-[0-9a-f]+-bgGradient\)"/i);
 });
+
+test("texture overlay is optional and selectable", () => {
+  const svgNone = generateCoverSvg(
+    { title: "Texture", author: "A", seed: 30 },
+    {},
+    "v1"
+  );
+  assert.doesNotMatch(svgNone, /-texture-(grid|graph|dots)/);
+
+  const svgGrid = generateCoverSvg(
+    { title: "Texture", author: "A", seed: 30, texture: "grid" },
+    {},
+    "v1"
+  );
+  assert.match(svgGrid, /-texture-grid/);
+  assert.match(svgGrid, /fill="url\(#cover-v1-[0-9a-f]+-texture-grid\)"/i);
+
+  const svgDots = generateCoverSvg(
+    { title: "Texture", author: "A", seed: 30, texture: "dots" },
+    {},
+    "v1"
+  );
+  assert.match(svgDots, /-texture-dots/);
+
+  const svgGraph = generateCoverSvg(
+    { title: "Texture", author: "A", seed: 30, texture: "graph" },
+    {},
+    "v1"
+  );
+  assert.match(svgGraph, /-texture-graph/);
+});

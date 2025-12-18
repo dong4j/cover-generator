@@ -5,6 +5,7 @@
 
 const { renderAvatar } = require("../shapeEngine");
 const { escapeXml, wrapLines } = require("../typographyEngine");
+const { buildTextureOverlay } = require("../overlayEngine");
 const { createRng, normalizeSeed, randomChoice } = require("../utils");
 
 const FONT_STACK =
@@ -223,6 +224,7 @@ function renderTemplateV3(options) {
     <stop offset="100%" stop-color="${bgB}"/>
   </linearGradient>`
       : "";
+  const overlay = buildTextureOverlay(options, idBase);
 
   const outerPadding = Math.round(96 * scale);
   const avatarSize = Math.round(168 * scale);
@@ -290,8 +292,10 @@ function renderTemplateV3(options) {
   )}">
   <defs>
     ${defs}
+    ${overlay.defs}
   </defs>
   <rect width="100%" height="100%" fill="${backgroundFill}"/>
+  ${overlay.layer}
   ${avatarSvg}
   ${titleSvg}
   ${subtitleSvg}
@@ -302,4 +306,3 @@ function renderTemplateV3(options) {
 module.exports = {
   renderTemplateV3
 };
-

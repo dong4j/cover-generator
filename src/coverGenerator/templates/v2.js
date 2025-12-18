@@ -5,6 +5,7 @@
 
 const { renderAvatar } = require("../shapeEngine");
 const { escapeXml, wrapLines } = require("../typographyEngine");
+const { buildTextureOverlay } = require("../overlayEngine");
 const { createRng, normalizeSeed, randomChoice } = require("../utils");
 
 const FONT_STACK =
@@ -246,6 +247,7 @@ function renderTemplateV2(options) {
 
   const backgroundFill = resolvedMode === "gradient" ? `url(#${bgGradientId})` : bgSolid;
   const cardFill = options.accent || randomChoice(LIGHT_CARD_COLORS, rng);
+  const overlay = buildTextureOverlay(options, idBase);
 
   const outerPadding = Math.round(70 * scale);
   const cardW = Math.round(options.width * 0.64);
@@ -363,8 +365,10 @@ function renderTemplateV2(options) {
   )}">
   <defs>
     ${defs}
+    ${overlay.defs}
   </defs>
   <rect width="100%" height="100%" fill="${backgroundFill}"/>
+  ${overlay.layer}
   ${avatarSvg}
   ${cardSvg}
   ${titleSvg}
