@@ -167,11 +167,26 @@ function renderCard({ x, y, width, height, radius, shadowFilterId, borderColor, 
   </g>`;
 }
 
-function renderFooterAvatar({ options, x, baselineY, size, idBase, index, textColor }) {
+function renderFooterAvatar({
+  options,
+  x,
+  baselineY,
+  size,
+  idBase,
+  index,
+  textColor,
+  alignTextFontSize
+}) {
+  // We do not have real font metrics on the server. To make the avatar/placeholder
+  // look visually aligned with the author text, we estimate the text visual center
+  // from its baseline and font-size.
+  const estimatedTextCenterY =
+    baselineY - Math.round((Number.isFinite(alignTextFontSize) ? alignTextFontSize : size) * 0.35);
+  const centerY = estimatedTextCenterY;
   const r = size / 2;
-  const y = Math.round(baselineY - size);
+  const y = Math.round(centerY - r);
   const cx = Math.round(x + r);
-  const cy = Math.round(y + r);
+  const cy = Math.round(centerY);
   const bgFill = "rgba(0,0,0,0.04)";
   const stroke = "rgba(0,0,0,0.08)";
 
@@ -353,7 +368,8 @@ function renderTemplateV1(options) {
     size: avatarSize,
     idBase,
     index: 1,
-    textColor
+    textColor,
+    alignTextFontSize: authorFontSize
   });
 
   const authorSvg = `<text x="${cardX + cardW - cardPadding}" y="${footerBaselineY}" fill="${textColor}" font-family="${FONT_STACK}" font-size="${authorFontSize}" font-weight="800" text-anchor="end" dominant-baseline="alphabetic">${escapeXml(
@@ -379,4 +395,3 @@ function renderTemplateV1(options) {
 module.exports = {
   renderTemplateV1
 };
-
