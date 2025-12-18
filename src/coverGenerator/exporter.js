@@ -5,9 +5,11 @@
 // Each version lives in its own file under coverGenerator/templates/.
 
 const { renderTemplateV1 } = require("./templates/v1");
+const { renderTemplateV2 } = require("./templates/v2");
 
 const templates = {
-  v1: renderTemplateV1
+  v1: renderTemplateV1,
+  v2: renderTemplateV2
 };
 
 function generateSVG(options) {
@@ -19,4 +21,3 @@ module.exports = {
   generateSVG,
   templates
 };
-

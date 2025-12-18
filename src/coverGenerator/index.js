@@ -50,8 +50,10 @@ function parseOptions(query, body) {
 function buildCoverOptions(query, body, templateFromPath) {
   const options = parseOptions(query, body);
   if (templateFromPath) options.template = templateFromPath;
-  // Current project state intentionally exposes only v1.
-  options.template = "v1";
+
+  const allowedTemplates = new Set(["v1", "v2"]);
+  if (!allowedTemplates.has(options.template)) options.template = "v1";
+
   options.seed = normalizeSeed(
     options.seed,
     `${options.title}-${options.author}-${options.template}`

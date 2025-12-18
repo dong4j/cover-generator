@@ -35,6 +35,7 @@ npm test
 - `GET /health`：健康检查
 - `GET /cover` 或 `GET /cover/svg`：生成封面（默认模板 `v1`）
 - `GET /cover/svg/v1`：显式指定模板 `v1`
+- `GET /cover/svg/v2`：显式指定模板 `v2`（左侧大头像 + 右侧卡片文案）
 - `POST /cover...`：同字段，JSON body
 
 返回类型：`image/svg+xml`。
@@ -54,6 +55,12 @@ npm test
 | `accent` | string | light auto | 卡片底色；不传则随机浅色。 |
 | `avatarEmoji` | string | empty | 单个 emoji；优先于 `avatarUrl`。 |
 | `avatarUrl` | string | empty | 头像 URL；服务端不下载，只在 SVG 里引用 `<image href="...">`。 |
+
+## v2 说明
+
+`v2` 的输入字段与 `v1` 基本一致（仍然支持 `title/subtitle/author/seed/width/height/background/color/accent/avatarEmoji/avatarUrl`），但布局不同：
+- 左侧：大头像（emoji/头像/占位符）
+- 右侧：白色（或浅色）卡片，内含标题/副标题/作者
 
 ## 示例
 
@@ -81,14 +88,18 @@ curl -X POST "http://localhost:3000/cover/svg/v1" \
     "background": "auto",
     "avatarEmoji": "👋"
   }' > cover.svg
+
+# v2（左头像 + 右卡片）
+curl "http://localhost:3000/cover/svg/v2?title=Hello&author=@dong4j&avatarEmoji=%F0%9F%91%8B&seed=12" > cover.svg
 ```
 
 ## 项目结构（如何理解它）
 
 - `src/server.js`：HTTP 层（路由、解析 GET/POST、体积限制、返回 SVG）。
 - `src/coverGenerator/index.js`：参数归一化与 seed 处理，把“外部输入”转换为“渲染用 options”。
-- `src/coverGenerator/exporter.js`：模板注册与调度（当前只保留 `v1`）。
+- `src/coverGenerator/exporter.js`：模板注册与调度（当前支持 `v1`、`v2`）。
 - `src/coverGenerator/templates/v1.js`：`v1` 模板实现，把 options 渲染成 SVG 字符串。
+- `src/coverGenerator/templates/v2.js`：`v2` 模板实现（左侧大头像 + 右侧卡片）。
 - `src/coverGenerator/shapeEngine.js`：小型 SVG 组件（例如头像渲染）。
 - `src/coverGenerator/typographyEngine.js`：文本工具（XML 转义、基础换行）。
 - `src/coverGenerator/utils.js`：seed/随机数等通用工具（可复现的 PRNG）。

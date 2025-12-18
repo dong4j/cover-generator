@@ -63,3 +63,36 @@ test("background=pattern falls back to auto", () => {
   assert.match(svg, /^<\?xml\b/);
 });
 
+test("v2 template returns svg", () => {
+  const svg = generateCoverSvg(
+    { title: "Split", author: "A", seed: 10, color: "#0a8f2a" },
+    {},
+    "v2"
+  );
+  assert.match(svg, /^<\?xml\b/);
+  assert.match(svg, /cover-v2-/);
+});
+
+test("v2 same seed produces deterministic output", () => {
+  const a = generateCoverSvg(
+    { title: "Split Deterministic", author: "A", seed: 11, background: "auto" },
+    {},
+    "v2"
+  );
+  const b = generateCoverSvg(
+    { title: "Split Deterministic", author: "A", seed: 11, background: "auto" },
+    {},
+    "v2"
+  );
+  assert.equal(a, b);
+});
+
+test("v2 without color uses gradient background", () => {
+  const svg = generateCoverSvg(
+    { title: "Gradient Bg", author: "A", seed: 12 },
+    {},
+    "v2"
+  );
+  assert.match(svg, /<linearGradient\b/);
+  assert.match(svg, /fill="url\(#cover-v2-[0-9a-f]+-bgGradient\)"/i);
+});
