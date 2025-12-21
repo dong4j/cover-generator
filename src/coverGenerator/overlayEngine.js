@@ -5,7 +5,7 @@
 
 function normalizeTexture(value) {
   const v = String(value || "").toLowerCase().trim();
-  if (v === "grid" || v === "graph" || v === "dots") return v;
+  if (v === "grid" || v === "graph" || v === "dots" || v === "circuit") return v;
   return "";
 }
 
@@ -56,6 +56,36 @@ function buildTextureOverlay(options, idBase) {
       layer: `<g opacity="1">
         <rect width="100%" height="100%" fill="url(#${patternId})" mask="url(#${centerMaskId})"/>
         <rect width="100%" height="100%" fill="url(#${patternId})" mask="url(#${edgeMaskId})" filter="url(#${blurId})" opacity="0.95"/>
+      </g>`
+    };
+  }
+
+  if (texture === "circuit") {
+    const circuitStroke = "rgba(255,255,255,0.18)";
+    const circuitStrokeLight = "rgba(255,255,255,0.10)";
+    const circuitNode = "rgba(255,255,255,0.22)";
+    return {
+      defs: `<pattern id="${patternId}" x="0" y="0" width="160" height="160" patternUnits="userSpaceOnUse">
+        <path d="M 16 24 H 72 V 56 H 144" fill="none" stroke="${circuitStroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M 16 96 H 56 V 80 H 104 V 120 H 144" fill="none" stroke="${circuitStroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M 40 8 V 40 H 96 V 16 H 144" fill="none" stroke="${circuitStrokeLight}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M 24 144 V 120 H 64 V 144" fill="none" stroke="${circuitStrokeLight}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M 112 144 V 104 H 88 V 72 H 120 V 40 H 144" fill="none" stroke="${circuitStrokeLight}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="16" cy="24" r="3" fill="${circuitNode}"/>
+        <circle cx="72" cy="56" r="3" fill="${circuitNode}"/>
+        <circle cx="144" cy="56" r="3" fill="${circuitNode}"/>
+        <circle cx="16" cy="96" r="3" fill="${circuitNode}"/>
+        <circle cx="104" cy="120" r="3" fill="${circuitNode}"/>
+        <circle cx="144" cy="120" r="3" fill="${circuitNode}"/>
+        <circle cx="40" cy="8" r="2.6" fill="${circuitNode}" opacity="0.8"/>
+        <circle cx="144" cy="16" r="2.6" fill="${circuitNode}" opacity="0.8"/>
+        <circle cx="24" cy="144" r="2.6" fill="${circuitNode}" opacity="0.8"/>
+        <circle cx="112" cy="144" r="2.6" fill="${circuitNode}" opacity="0.8"/>
+      </pattern>
+      ${commonDefs}`,
+      layer: `<g opacity="1">
+        <rect width="100%" height="100%" fill="url(#${patternId})" mask="url(#${centerMaskId})"/>
+        <rect width="100%" height="100%" fill="url(#${patternId})" mask="url(#${edgeMaskId})" filter="url(#${blurId})" opacity="0.9"/>
       </g>`
     };
   }

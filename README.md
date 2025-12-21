@@ -37,6 +37,7 @@ npm test
 - `GET /cover/svg/v1`：显式指定模板 `v1`
 - `GET /cover/svg/v2`：显式指定模板 `v2`（左侧大头像 + 右侧卡片文案）
 - `GET /cover/svg/v3`：显式指定模板 `v3`（纯背景大标题风格）
+- `GET /cover/svg/v4`：显式指定模板 `v4`（电路板纹理 + 居中图标标题）
 - `POST /cover...`：同字段，JSON body
 
 返回类型：`image/svg+xml`。
@@ -52,7 +53,7 @@ npm test
 | `width` | number | 1200 | 300–4000。 |
 | `height` | number | 630 | 300–4000。 |
 | `background` | string | `auto` | `auto` \| `solid` \| `gradient`。`auto` 会在暖色系纯色/渐变中随机选择。 |
-| `texture` | string | empty | 背景纹理叠加：empty \| `grid` \| `graph` \| `dots`；不传则不叠加。 |
+| `texture` | string | empty | 背景纹理叠加：empty \| `grid` \| `graph` \| `dots` \| `circuit`；不传则不叠加。 |
 | `color` | string | warm auto | 背景主色；传了则固定背景为纯色（不走渐变随机）。 |
 | `accent` | string | light auto | 卡片底色；不传则随机浅色。 |
 | `avatarEmoji` | string | empty | 单个 emoji；优先于 `avatarUrl`。 |
@@ -71,6 +72,15 @@ npm test
 - 左上角头像（emoji/头像/占位符）
 - 大标题（白字、左对齐，自动换行/缩放）
 - 左下角作者
+
+## v4 说明
+
+`v4` 的输入字段与 `v1/v2/v3` 一致，布局为：
+- 冷色系纯色/渐变背景（支持 `background=solid|gradient|auto`，不传 `color` 时默认冷色渐变）
+- 电路板纹理叠加（默认 `circuit`，可用 `texture` 覆盖）
+- 居中图标（优先头像/emoji；否则使用原子图形占位）
+- 居中标题/副标题（自动换行/缩放）
+- 居中作者
 
 ## 示例
 
@@ -103,7 +113,7 @@ curl -X POST "http://localhost:3000/cover/svg/v1" \
 curl "http://localhost:3000/cover/svg/v2?title=Hello&author=@dong4j&avatarEmoji=%F0%9F%91%8B&seed=12" > cover.svg
 
 # v3（纯背景大标题）
-curl "http://localhost:3000/cover/svg/v3?title=%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%EF%BC%9A%E5%A6%82%E4%BD%95%E5%9C%A8%20IntelliAI%20Engine%20%E4%B8%AD%E4%BC%98%E9%9B%85%E9%9B%86%E6%88%90%E9%9D%9E%E6%A0%87%E5%87%86%E5%8D%8F%E8%AE%AE%E7%9A%84%20AI%20%E6%9C%8D%E5%8A%A1&author=%40dong4j&avatarEmoji=%F0%9F%91%8B&seed=2025" > cover.svg
+curl "http://localhost:3000/cover/svg/v3?title=%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%EF%BC%9A%E5%A6%82%E4%BD%95%E5%9C%A8%20IntelliAI%20Engine%20%E4%B8%AD%E4%BC%98%E9%9B%85%E9%9B%86%E6%88%90%E9%9D%9E%E6%A0%87%E5%87%86%E5%8D%8F%E8%AE%AE%E7%9A%84%20AI%20%E6%9C%8D%E5%8A%A1&author=%40dong4j&avatarEmoji=%F0%9F%91%8B&seed=2025&texture=dots" > cover.svg
 
 # texture=grid（细网格叠加）
 curl "http://localhost:3000/cover/svg/v3?title=Grid%20Overlay&author=%40dong4j&seed=101&texture=grid" > cover.svg
@@ -113,25 +123,29 @@ curl "http://localhost:3000/cover/svg/v3?title=Graph%20Overlay&author=%40dong4j&
 
 # texture=dots（点阵叠加）
 curl "http://localhost:3000/cover/svg/v3?title=Dots%20Overlay&author=%40dong4j&seed=103&texture=dots" > cover.svg
+
+# v4（电路板纹理 + 居中布局）
+curl "http://localhost:3000/cover/svg/v4?title=React&subtitle=The%20library%20for%20web%20and%20native%20user%20interfaces&author=%40dong4j&seed=2026&texture=circuit" > cover.svg
 ```
 
 ## 项目结构（如何理解它）
 
 - `src/server.js`：HTTP 层（路由、解析 GET/POST、体积限制、返回 SVG）。
 - `src/coverGenerator/index.js`：参数归一化与 seed 处理，把“外部输入”转换为“渲染用 options”。
-- `src/coverGenerator/exporter.js`：模板注册与调度（当前支持 `v1`、`v2`）。
+- `src/coverGenerator/exporter.js`：模板注册与调度（当前支持 `v1`、`v2`、`v3`、`v4`）。
 - `src/coverGenerator/templates/v1.js`：`v1` 模板实现，把 options 渲染成 SVG 字符串。
 - `src/coverGenerator/templates/v2.js`：`v2` 模板实现（左侧大头像 + 右侧卡片）。
 - `src/coverGenerator/templates/v3.js`：`v3` 模板实现（纯背景大标题）。
+- `src/coverGenerator/templates/v4.js`：`v4` 模板实现（电路纹理 + 居中布局）。
 - `src/coverGenerator/shapeEngine.js`：小型 SVG 组件（例如头像渲染）。
 - `src/coverGenerator/typographyEngine.js`：文本工具（XML 转义、基础换行）。
 - `src/coverGenerator/utils.js`：seed/随机数等通用工具（可复现的 PRNG）。
 
-## 模板版本与扩展策略（v1 / 未来 v2 v3）
+## 模板版本与扩展策略（v1 / 未来 v2 v3 v4）
 
 把版本号当成“对外稳定契约”：
 - `v1`：当前这套最满意的卡片风格（暖色背景 + 浅色卡片 + 标题自适应 + 左下角头像 + 右下角作者）。
-- 未来的 `v2`/`v3`：当需要“明显不同的版式/视觉体系”且不希望影响历史封面时，再新增版本号。
+- 未来的 `v2`/`v3`/`v4`：当需要“明显不同的版式/视觉体系”且不希望影响历史封面时，再新增版本号。
 
 `v1` 不只是“一个布局”，它包含：
 - 布局（标题区域/footer/头像位置）

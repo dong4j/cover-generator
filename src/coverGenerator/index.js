@@ -17,7 +17,7 @@ const defaultOptions = {
   width: 1200,
   height: 630,
   background: "auto", // auto | solid | gradient
-  texture: "", // empty | grid | graph | dots
+  texture: "", // empty | grid | graph | dots | circuit
   color: undefined,
   accent: undefined,
   avatarUrl: "",
@@ -53,7 +53,7 @@ function buildCoverOptions(query, body, templateFromPath) {
   const options = parseOptions(query, body);
   if (templateFromPath) options.template = templateFromPath;
 
-  const allowedTemplates = new Set(["v1", "v2", "v3"]);
+  const allowedTemplates = new Set(["v1", "v2", "v3", "v4"]);
   if (!allowedTemplates.has(options.template)) options.template = "v1";
 
   options.seed = normalizeSeed(

@@ -117,6 +117,26 @@ test("v3 without color uses gradient background", () => {
   assert.match(svg, /fill="url\(#cover-v3-[0-9a-f]+-bgGradient\)"/i);
 });
 
+test("v4 template returns svg", () => {
+  const svg = generateCoverSvg(
+    { title: "Circuit", author: "A", seed: 40 },
+    {},
+    "v4"
+  );
+  assert.match(svg, /^<\?xml\b/);
+  assert.match(svg, /cover-v4-/);
+});
+
+test("v4 without color uses gradient background", () => {
+  const svg = generateCoverSvg(
+    { title: "V4 Gradient", author: "A", seed: 41 },
+    {},
+    "v4"
+  );
+  assert.match(svg, /<linearGradient\b/);
+  assert.match(svg, /fill="url\(#cover-v4-[0-9a-f]+-bgGradient\)"/i);
+});
+
 test("texture overlay is optional and selectable", () => {
   const svgNone = generateCoverSvg(
     { title: "Texture", author: "A", seed: 30 },
@@ -146,4 +166,11 @@ test("texture overlay is optional and selectable", () => {
     "v1"
   );
   assert.match(svgGraph, /-texture-graph/);
+
+  const svgCircuit = generateCoverSvg(
+    { title: "Texture", author: "A", seed: 30, texture: "circuit" },
+    {},
+    "v1"
+  );
+  assert.match(svgCircuit, /-texture-circuit/);
 });

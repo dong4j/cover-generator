@@ -61,7 +61,7 @@ function sendSvg(res, svg) {
 
 function matchCoverTemplatePath(pathname) {
   // Keep a strict allowlist to avoid accidental exposure of removed versions.
-  const match = pathname.match(/^\/cover\/svg\/(v1|v2|v3)$/);
+  const match = pathname.match(/^\/cover\/svg\/(v1|v2|v3|v4)$/);
   return match ? match[1] : null;
 }
 
