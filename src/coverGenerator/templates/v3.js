@@ -169,8 +169,8 @@ function renderTopAvatar({ options, x, y, size, idBase }) {
     const strokeWidth = Math.max(2, Math.round(size * 0.05));
     return `<g>
       <circle cx="${cx}" cy="${cy}" r="${r}" fill="#ffffff" stroke="${stroke}" stroke-width="2"/>
-      <circle cx="${cx}" cy="${headCy}" r="${headR}" fill="rgba(0,0,0,0.14)"/>
-      <path d="M ${leftX} ${shoulderY} C ${c1x} ${cY} ${c2x} ${cY} ${rightX} ${shoulderY}" fill="none" stroke="rgba(0,0,0,0.14)" stroke-width="${strokeWidth}" stroke-linecap="round"/>
+      <circle cx="${cx}" cy="${headCy}" r="${headR}" fill="rgba(255,255,255,0.28)"/>
+      <path d="M ${leftX} ${shoulderY} C ${c1x} ${cY} ${c2x} ${cY} ${rightX} ${shoulderY}" fill="none" stroke="rgba(255,255,255,0.28)" stroke-width="${strokeWidth}" stroke-linecap="round"/>
     </g>`;
   }
 
@@ -191,7 +191,7 @@ function renderTopAvatar({ options, x, y, size, idBase }) {
       avatarEmoji: options.avatarEmoji,
       size,
       bgColor: "#ffffff",
-      textColor: "#111827",
+      textColor: "#fef3c7",
       clipId
     })}
   </g>`;

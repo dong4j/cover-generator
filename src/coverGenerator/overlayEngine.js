@@ -15,9 +15,9 @@ function buildTextureOverlay(options, idBase) {
 
   const patternId = `${idBase}-texture-${texture}`;
   // Slightly darker than before so it's visible on both light/dark backgrounds.
-  const stroke = "rgba(17,24,39,0.20)";
-  const strokeLight = "rgba(17,24,39,0.10)";
-  const dotFill = "rgba(17,24,39,0.24)";
+  const stroke = "rgba(124,45,18,0.22)";
+  const strokeLight = "rgba(124,45,18,0.12)";
+  const dotFill = "rgba(124,45,18,0.24)";
 
   // Center-focused clarity: sharp in the middle, softer towards edges.
   // We approximate "blur on edges" by combining:
@@ -61,9 +61,9 @@ function buildTextureOverlay(options, idBase) {
   }
 
   if (texture === "circuit") {
-    const circuitStroke = "rgba(255,255,255,0.18)";
-    const circuitStrokeLight = "rgba(255,255,255,0.10)";
-    const circuitNode = "rgba(255,255,255,0.22)";
+    const circuitStroke = "rgba(255,255,255,0.22)";
+    const circuitStrokeLight = "rgba(255,255,255,0.12)";
+    const circuitNode = "rgba(255,255,255,0.26)";
     return {
       defs: `<pattern id="${patternId}" x="0" y="0" width="160" height="160" patternUnits="userSpaceOnUse">
         <path d="M 16 24 H 72 V 56 H 144" fill="none" stroke="${circuitStroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>

@@ -1,9 +1,8 @@
 "use strict";
 
-// coverGenerator/templates/v4.js
-// Template v4 implementation: circuit board background + centered emblem + title/subtitle.
+// coverGenerator/templates/v6.js
+// Template v6 implementation: clean light background + centered icon + title/subtitle/author.
 
-const { renderAvatar } = require("../shapeEngine");
 const { escapeXml, wrapLines } = require("../typographyEngine");
 const { buildTextureOverlay } = require("../overlayEngine");
 const { createRng, normalizeSeed, randomChoice } = require("../utils");
@@ -11,7 +10,16 @@ const { createRng, normalizeSeed, randomChoice } = require("../utils");
 const FONT_STACK =
   "Inter, 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif";
 
-const COOL_COLORS = ["#f97316", "#fb7185", "#f59e0b", "#ec4899", "#fb923c", "#fda4af"];
+const LIGHT_COLORS = [
+  "#fff7ed",
+  "#ffedd5",
+  "#fef3c7",
+  "#fde68a",
+  "#fee2e2",
+  "#fce7f3",
+  "#fae8ff",
+  "#fef9c3"
+];
 
 function normalizeBackgroundMode(options) {
   const mode = String(options.background || "auto").toLowerCase();
@@ -68,7 +76,7 @@ function estimateTokenUnits(token) {
   return units;
 }
 
-function wrapLinesV4(text, maxWidth, fontSize) {
+function wrapLinesV6(text, maxWidth, fontSize) {
   const maxUnits = (maxWidth / Math.max(1, fontSize)) * 0.92;
   const tokens = tokenizeForWrap(text);
   const lines = [];
@@ -142,52 +150,72 @@ function wrapAndFitText({ text, maxWidth, maxHeight, fontSize, lineHeight, minFo
   return { fontSize: currentFontSize, lineHeight: currentLineHeight, lines };
 }
 
-function renderCenterMark({ options, centerX, centerY, size, idBase }) {
-  if (options.avatarUrl || options.avatarEmoji) {
-    const clipId = `${idBase}-center-avatar`;
-    const x = Math.round(centerX - size / 2);
-    const y = Math.round(centerY - size / 2);
-    return `<g transform="translate(${x}, ${y})">
-      ${renderAvatar({
-        avatarUrl: options.avatarUrl,
-        avatarEmoji: options.avatarEmoji,
-        size,
-        bgColor: "#ffffff",
-        textColor: "#b45309",
-        clipId
-      })}
+function getInitial(text) {
+  const trimmed = String(text || "").trim();
+  const match = trimmed.match(/[A-Za-z0-9]/);
+  if (match) return match[0].toUpperCase();
+  if (trimmed) return trimmed.slice(0, 1);
+  return "A";
+}
+
+function renderIcon({ options, centerX, centerY, size, idBase }) {
+  const x = Math.round(centerX - size / 2);
+  const y = Math.round(centerY - size / 2);
+  const clipId = `${idBase}-icon-clip`;
+  const bg = "#ffffff";
+  const r = Math.round(size / 2);
+
+  if (options.avatarUrl) {
+    return `<g>
+      <clipPath id="${clipId}">
+        <circle cx="${centerX}" cy="${centerY}" r="${r}"/>
+      </clipPath>
+      <circle cx="${centerX}" cy="${centerY}" r="${r}" fill="${bg}"/>
+      <image href="${escapeXml(
+      options.avatarUrl
+    )}" x="${x}" y="${y}" width="${size}" height="${size}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${clipId})"/>
     </g>`;
   }
 
-  const stroke = "#fb923c";
-  const strokeWidth = Math.max(4, Math.round(size * 0.06));
-  const rx = Math.round(size * 0.46);
-  const ry = Math.round(size * 0.20);
-  const dotR = Math.max(6, Math.round(size * 0.08));
+  if (options.avatarEmoji) {
+    const fontSize = Math.round(size * 0.58);
+    return `<g>
+      <circle cx="${centerX}" cy="${centerY}" r="${r}" fill="${bg}"/>
+      <text x="${centerX}" y="${centerY}" text-anchor="middle" dominant-baseline="central" font-family="${FONT_STACK}" font-size="${fontSize}" fill="#b45309">${escapeXml(
+      options.avatarEmoji
+    )}</text>
+    </g>`;
+  }
+
+  const initial = getInitial(options.title);
+  const fontSize = Math.round(size * 0.54);
+  const dot = Math.round(size * 0.12);
+  const dotOffset = Math.round(size * 0.26);
+  const triangle = Math.round(size * 0.22);
   return `<g>
-    <g fill="none" stroke="${stroke}" stroke-width="${strokeWidth}">
-      <ellipse cx="${centerX}" cy="${centerY}" rx="${rx}" ry="${ry}"/>
-      <ellipse cx="${centerX}" cy="${centerY}" rx="${rx}" ry="${ry}" transform="rotate(60 ${centerX} ${centerY})"/>
-      <ellipse cx="${centerX}" cy="${centerY}" rx="${rx}" ry="${ry}" transform="rotate(-60 ${centerX} ${centerY})"/>
-    </g>
-    <circle cx="${centerX}" cy="${centerY}" r="${dotR}" fill="${stroke}"/>
+    <circle cx="${centerX}" cy="${centerY}" r="${r}" fill="${bg}"/>
+    <circle cx="${centerX - dotOffset}" cy="${centerY - dotOffset}" r="${dot}" fill="rgba(180,83,9,0.25)"/>
+    <circle cx="${centerX + dotOffset}" cy="${centerY + dotOffset}" r="${dot}" fill="rgba(180,83,9,0.25)"/>
+    <path d="M ${centerX - triangle} ${centerY - triangle} L ${centerX + triangle} ${centerY} L ${centerX - triangle} ${centerY + triangle} Z" fill="rgba(180,83,9,0.72)"/>
+    <text x="${centerX}" y="${centerY + Math.round(size * 0.38)}" text-anchor="middle" dominant-baseline="central" font-family="${FONT_STACK}" font-size="${fontSize * 0.46}" fill="rgba(180,83,9,0.85)">${escapeXml(
+    initial
+  )}</text>
   </g>`;
 }
 
-function renderTemplateV4(options) {
+function renderTemplateV6(options) {
   const seed = normalizeSeed(options.seed, `${options.title}-${options.author}-${options.template}`);
   const rng = createRng(seed);
-  const idBase = `cover-v4-${seed.toString(16)}`;
+  const idBase = `cover-v6-${seed.toString(16)}`;
 
   const scale = Math.min(options.width / 1600, options.height / 900);
-
   const bgMode = normalizeBackgroundMode(options);
   const resolvedMode =
     options.color || bgMode === "solid" ? "solid" : bgMode === "gradient" ? "gradient" : "gradient";
 
-  const bgSolid = options.color || randomChoice(COOL_COLORS, rng);
-  const bgA = randomChoice(COOL_COLORS, rng);
-  const bgB = randomChoice(COOL_COLORS, rng);
+  const bgSolid = options.color || randomChoice(LIGHT_COLORS, rng);
+  const bgA = randomChoice(LIGHT_COLORS, rng);
+  const bgB = randomChoice(LIGHT_COLORS, rng);
   const bgAngle = Math.round(rng() * 360);
   const bgGradientId = `${idBase}-bgGradient`;
   const backgroundFill = resolvedMode === "gradient" ? `url(#${bgGradientId})` : bgSolid;
@@ -198,67 +226,82 @@ function renderTemplateV4(options) {
     <stop offset="100%" stop-color="${bgB}"/>
   </linearGradient>`
       : "";
-
-  const overlay = buildTextureOverlay(
-    { ...options, texture: options.texture || "circuit" },
-    idBase
-  );
+  const overlay = buildTextureOverlay(options, idBase);
 
   const centerX = Math.round(options.width / 2);
-  const topPadding = Math.round(110 * scale);
-  const iconSize = Math.round(200 * scale);
-  const iconGap = Math.round(36 * scale);
-  const iconCenterY = Math.round(topPadding + iconSize / 2);
-  const titleAreaTop = Math.round(topPadding + iconSize + iconGap);
+  const iconSize = Math.round(128 * scale);
+  const gap = Math.round(26 * scale);
 
-  const titleMaxWidth = Math.round(options.width * 0.72);
-  const subtitleMaxWidth = Math.round(options.width * 0.68);
+  const titleFontSize = Math.round(68 * scale);
+  const titleLineHeight = Math.round(84 * scale);
+  const titleMinFontSize = Math.round(50 * scale);
+  const titleMaxWidth = Math.round(options.width * 0.68);
 
-  const titleFontSize = Math.round(92 * scale);
-  const titleLineHeight = Math.round(112 * scale);
-  const titleMinFontSize = Math.round(64 * scale);
-
-  const subtitleFontSize = Math.round(36 * scale);
+  const subtitleFontSize = Math.round(34 * scale);
   const subtitleLineHeight = Math.round(48 * scale);
   const subtitleMinFontSize = Math.round(24 * scale);
-  const subtitleGap = options.subtitle ? Math.round(24 * scale) : 0;
+  const subtitleMaxWidth = Math.round(options.width * 0.62);
+  const subtitleGap = options.subtitle ? gap : 0;
 
-  const authorFontSize = Math.round(30 * scale);
-  const authorLineHeight = Math.round(36 * scale);
-  const authorGap = Math.round(26 * scale);
-  const bottomPadding = Math.round(80 * scale);
+  const authorFontSize = Math.round(26 * scale);
+  const authorLineHeight = Math.round(32 * scale);
+  const authorGap = options.author ? gap : 0;
 
   const subtitleLayout = options.subtitle
     ? wrapAndFitText({
         text: options.subtitle,
         maxWidth: subtitleMaxWidth,
-        maxHeight: Math.round(120 * scale),
+        maxHeight: Math.round(140 * scale),
         fontSize: subtitleFontSize,
         lineHeight: subtitleLineHeight,
         minFontSize: subtitleMinFontSize,
-        wrap: wrapLinesV4
+        wrap: wrapLinesV6
       })
     : null;
 
   const subtitleHeight = subtitleLayout ? subtitleLayout.lines.length * subtitleLayout.lineHeight : 0;
-  const availableHeight = options.height - bottomPadding - titleAreaTop;
-  const reservedForSubtitle = subtitleLayout ? subtitleHeight + subtitleGap : 0;
-  const reservedForAuthor = options.author ? authorLineHeight + authorGap : 0;
-  const maxTitleHeight = Math.max(1, availableHeight - reservedForSubtitle - reservedForAuthor);
+  const authorHeight = options.author ? authorLineHeight : 0;
+  const availableTitleHeight =
+    options.height -
+    iconSize -
+    gap * 2 -
+    subtitleHeight -
+    subtitleGap -
+    authorHeight -
+    authorGap;
 
   const fittedTitle = wrapAndFitText({
     text: options.title,
     maxWidth: titleMaxWidth,
-    maxHeight: maxTitleHeight,
+    maxHeight: Math.max(1, availableTitleHeight),
     fontSize: titleFontSize,
     lineHeight: titleLineHeight,
     minFontSize: titleMinFontSize,
-    wrap: wrapLinesV4
+    wrap: wrapLinesV6
   });
 
-  const titleLines = fittedTitle.lines;
-  const titleSvg = `<text x="${centerX}" y="${titleAreaTop}" fill="#ffffff" font-family="${FONT_STACK}" font-size="${fittedTitle.fontSize}" font-weight="800" letter-spacing="-1" text-anchor="middle" dominant-baseline="hanging">
-    ${titleLines
+  const titleHeight = fittedTitle.lines.length * fittedTitle.lineHeight;
+  const groupHeight =
+    iconSize +
+    gap +
+    titleHeight +
+    (subtitleLayout ? subtitleGap + subtitleHeight : 0) +
+    (options.author ? authorGap + authorHeight : 0);
+  const groupTop = Math.round((options.height - groupHeight) / 2);
+
+  const iconCenterY = Math.round(groupTop + iconSize / 2);
+  const titleTop = Math.round(groupTop + iconSize + gap);
+
+  const iconSvg = renderIcon({
+    options,
+    centerX,
+    centerY: iconCenterY,
+    size: iconSize,
+    idBase
+  });
+
+  const titleSvg = `<text x="${centerX}" y="${titleTop}" fill="#7c2d12" font-family="${FONT_STACK}" font-size="${fittedTitle.fontSize}" font-weight="800" letter-spacing="-0.6" text-anchor="middle" dominant-baseline="hanging">
+    ${fittedTitle.lines
       .map((line, index) => {
         const dy = index === 0 ? 0 : fittedTitle.lineHeight;
         return `<tspan x="${centerX}" dy="${dy}">${escapeXml(line)}</tspan>`;
@@ -266,11 +309,11 @@ function renderTemplateV4(options) {
       .join("")}
   </text>`;
 
-  let cursorY = titleAreaTop + titleLines.length * fittedTitle.lineHeight;
+  let cursorY = titleTop + titleHeight;
   const subtitleSvg = subtitleLayout
     ? (() => {
         cursorY += subtitleGap;
-        const subtitleText = `<text x="${centerX}" y="${cursorY}" fill="rgba(255,255,255,0.74)" font-family="${FONT_STACK}" font-size="${subtitleLayout.fontSize}" font-weight="600" text-anchor="middle" dominant-baseline="hanging">
+        const subtitleText = `<text x="${centerX}" y="${cursorY}" fill="rgba(124,45,18,0.72)" font-family="${FONT_STACK}" font-size="${subtitleLayout.fontSize}" font-weight="600" text-anchor="middle" dominant-baseline="hanging">
           ${subtitleLayout.lines
             .map((line, index) => {
               const dy = index === 0 ? 0 : subtitleLayout.lineHeight;
@@ -286,18 +329,10 @@ function renderTemplateV4(options) {
   let authorSvg = "";
   if (options.author) {
     cursorY += authorGap;
-    authorSvg = `<text x="${centerX}" y="${cursorY}" fill="rgba(255,255,255,0.70)" font-family="${FONT_STACK}" font-size="${authorFontSize}" font-weight="600" text-anchor="middle" dominant-baseline="hanging">${escapeXml(
+    authorSvg = `<text x="${centerX}" y="${cursorY}" fill="rgba(124,45,18,0.56)" font-family="${FONT_STACK}" font-size="${authorFontSize}" font-weight="600" text-anchor="middle" dominant-baseline="hanging">${escapeXml(
       options.author
     )}</text>`;
   }
-
-  const markSvg = renderCenterMark({
-    options,
-    centerX,
-    centerY: iconCenterY,
-    size: iconSize,
-    idBase
-  });
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="${options.width}" height="${options.height}" viewBox="0 0 ${options.width} ${options.height}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Blog cover for ${escapeXml(
@@ -309,7 +344,7 @@ function renderTemplateV4(options) {
   </defs>
   <rect width="100%" height="100%" fill="${backgroundFill}"/>
   ${overlay.layer}
-  ${markSvg}
+  ${iconSvg}
   ${titleSvg}
   ${subtitleSvg}
   ${authorSvg}
@@ -317,5 +352,5 @@ function renderTemplateV4(options) {
 }
 
 module.exports = {
-  renderTemplateV4
+  renderTemplateV6
 };

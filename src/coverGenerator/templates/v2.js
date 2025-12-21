@@ -191,16 +191,16 @@ function renderLeftAvatar({ options, x, y, size, idBase, index }) {
     const cY = Math.round(cy + r * 0.10);
     const strokeWidth = Math.max(2, Math.round(size * 0.05));
     return `<g>
-      <circle cx="${cx}" cy="${cy}" r="${r}" fill="#ffffff" stroke="rgba(0,0,0,0.10)" stroke-width="2"/>
-      <circle cx="${cx}" cy="${headCy}" r="${headR}" fill="rgba(0,0,0,0.14)"/>
-      <path d="M ${leftX} ${shoulderY} C ${c1x} ${cY} ${c2x} ${cY} ${rightX} ${shoulderY}" fill="none" stroke="rgba(0,0,0,0.14)" stroke-width="${strokeWidth}" stroke-linecap="round"/>
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="#ffffff" stroke="rgba(124,45,18,0.14)" stroke-width="2"/>
+      <circle cx="${cx}" cy="${headCy}" r="${headR}" fill="rgba(124,45,18,0.18)"/>
+      <path d="M ${leftX} ${shoulderY} C ${c1x} ${cY} ${c2x} ${cY} ${rightX} ${shoulderY}" fill="none" stroke="rgba(124,45,18,0.18)" stroke-width="${strokeWidth}" stroke-linecap="round"/>
     </g>`;
   }
 
   if (options.avatarEmoji) {
     const emojiFontSize = Math.round(size * 0.46);
     return `<g>
-      <circle cx="${cx}" cy="${cy}" r="${r}" fill="#ffffff" stroke="rgba(0,0,0,0.10)" stroke-width="2"/>
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="#ffffff" stroke="rgba(124,45,18,0.14)" stroke-width="2"/>
       <text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="central" font-family="${FONT_STACK}" font-size="${emojiFontSize}">${escapeXml(
       options.avatarEmoji
     )}</text>
@@ -216,7 +216,7 @@ function renderLeftAvatar({ options, x, y, size, idBase, index }) {
       avatarEmoji: options.avatarEmoji,
       size,
       bgColor: "#ffffff",
-      textColor: "#111827",
+      textColor: "#b45309",
       clipId
     })}
   </g>`;
@@ -228,9 +228,9 @@ function renderTemplateV2(options) {
   const idBase = `cover-v2-${seed.toString(16)}`;
 
   const scale = Math.min(options.width / 1600, options.height / 900);
-  const borderColor = "rgba(0,0,0,0.06)";
-  const textColor = "#1f2937";
-  const mutedColor = "#374151";
+  const borderColor = "rgba(124,45,18,0.12)";
+  const textColor = "#7c2d12";
+  const mutedColor = "#b45309";
 
   // Color logic aligned with v1:
   // - If `color` is provided: lock to solid background.
@@ -271,7 +271,7 @@ function renderTemplateV2(options) {
   const defsBase = `<filter id="${shadowFilterId}" x="-20%" y="-20%" width="140%" height="140%">
     <feDropShadow dx="0" dy="${Math.round(18 * scale)}" stdDeviation="${Math.round(
     18 * scale
-  )}" flood-color="#000000" flood-opacity="0.18"/>
+  )}" flood-color="#b45309" flood-opacity="0.18"/>
   </filter>`;
   const defs =
     resolvedMode === "gradient"

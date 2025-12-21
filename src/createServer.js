@@ -61,8 +61,12 @@ function sendSvg(res, svg) {
 
 function matchCoverTemplatePath(pathname) {
   // Keep a strict allowlist to avoid accidental exposure of removed versions.
-  const match = pathname.match(/^\/cover\/svg\/(v1|v2|v3|v4)$/);
+  const match = pathname.match(/^\/cover\/svg\/(v1|v2|v3|v4|v5|v6|v7)$/);
   return match ? match[1] : null;
+}
+
+function isRandomCoverPath(pathname) {
+  return pathname === "/cover/random";
 }
 
 async function handleCoverRequest(req, res, url, templateFromPath, deps) {
@@ -71,11 +75,13 @@ async function handleCoverRequest(req, res, url, templateFromPath, deps) {
       req.method === "POST"
         ? await parseJSONBody(req, deps.maxBodyBytes)
         : Object.create(null);
-    const svg = deps.generateCoverSvg(
-      Object.fromEntries(url.searchParams),
-      body,
-      templateFromPath || undefined
-    );
+    const svg = templateFromPath === "random"
+      ? deps.generateRandomCoverSvg(Object.fromEntries(url.searchParams), body)
+      : deps.generateCoverSvg(
+          Object.fromEntries(url.searchParams),
+          body,
+          templateFromPath || undefined
+        );
     sendSvg(res, svg);
   } catch (err) {
     const status = err && err.message === "Payload too large" ? 413 : 400;
@@ -83,13 +89,14 @@ async function handleCoverRequest(req, res, url, templateFromPath, deps) {
   }
 }
 
-function createServer({ generateCoverSvg, maxBodyBytes } = {}) {
-  if (typeof generateCoverSvg !== "function") {
-    throw new TypeError("createServer requires generateCoverSvg function");
+function createServer({ generateCoverSvg, generateRandomCoverSvg, maxBodyBytes } = {}) {
+  if (typeof generateCoverSvg !== "function" || typeof generateRandomCoverSvg !== "function") {
+    throw new TypeError("createServer requires generateCoverSvg and generateRandomCoverSvg");
   }
 
   const deps = {
     generateCoverSvg,
+    generateRandomCoverSvg,
     maxBodyBytes: Number.isFinite(maxBodyBytes) ? maxBodyBytes : DEFAULT_MAX_BODY_BYTES
   };
 
@@ -102,13 +109,16 @@ function createServer({ generateCoverSvg, maxBodyBytes } = {}) {
     }
 
     const templatePath = matchCoverTemplatePath(url.pathname);
+    const randomPath = isRandomCoverPath(url.pathname);
     const isCoverRoute =
       url.pathname === "/cover" ||
       url.pathname === "/cover/svg" ||
-      templatePath !== null;
+      templatePath !== null ||
+      randomPath;
 
     if (isCoverRoute && (req.method === "GET" || req.method === "POST")) {
-      await handleCoverRequest(req, res, url, templatePath || undefined, deps);
+      const handlerTemplate = randomPath ? "random" : templatePath || undefined;
+      await handleCoverRequest(req, res, url, handlerTemplate, deps);
       return;
     }
 

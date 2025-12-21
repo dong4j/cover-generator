@@ -1,7 +1,7 @@
 "use strict";
 
-// coverGenerator/templates/v4.js
-// Template v4 implementation: circuit board background + centered emblem + title/subtitle.
+// coverGenerator/templates/v5.js
+// Template v5 implementation: warm gradient + fine grid + centered title + single icon.
 
 const { renderAvatar } = require("../shapeEngine");
 const { escapeXml, wrapLines } = require("../typographyEngine");
@@ -11,7 +11,16 @@ const { createRng, normalizeSeed, randomChoice } = require("../utils");
 const FONT_STACK =
   "Inter, 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif";
 
-const COOL_COLORS = ["#f97316", "#fb7185", "#f59e0b", "#ec4899", "#fb923c", "#fda4af"];
+const WARM_COLORS = [
+  "#f97316",
+  "#fb7185",
+  "#f472b6",
+  "#f43f5e",
+  "#f59e0b",
+  "#f97316",
+  "#fb923c",
+  "#ec4899"
+];
 
 function normalizeBackgroundMode(options) {
   const mode = String(options.background || "auto").toLowerCase();
@@ -68,7 +77,7 @@ function estimateTokenUnits(token) {
   return units;
 }
 
-function wrapLinesV4(text, maxWidth, fontSize) {
+function wrapLinesV5(text, maxWidth, fontSize) {
   const maxUnits = (maxWidth / Math.max(1, fontSize)) * 0.92;
   const tokens = tokenizeForWrap(text);
   const lines = [];
@@ -142,15 +151,35 @@ function wrapAndFitText({ text, maxWidth, maxHeight, fontSize, lineHeight, minFo
   return { fontSize: currentFontSize, lineHeight: currentLineHeight, lines };
 }
 
-function renderCenterMark({ options, centerX, centerY, size, idBase }) {
-  if (options.avatarUrl || options.avatarEmoji) {
-    const clipId = `${idBase}-center-avatar`;
-    const x = Math.round(centerX - size / 2);
-    const y = Math.round(centerY - size / 2);
+function buildMicroGridOverlay(idBase) {
+  const patternId = `${idBase}-micro-grid`;
+  const stroke = "rgba(124,45,18,0.18)";
+  return {
+    defs: `<pattern id="${patternId}" x="0" y="0" width="22" height="22" patternUnits="userSpaceOnUse">
+      <path d="M 22 0 L 0 0 0 22" fill="none" stroke="${stroke}" stroke-width="1"/>
+    </pattern>`,
+    layer: `<rect width="100%" height="100%" fill="url(#${patternId})" opacity="0.35"/>`
+  };
+}
+
+function getInitial(text) {
+  const trimmed = String(text || "").trim();
+  const match = trimmed.match(/[A-Za-z0-9]/);
+  if (match) return match[0].toUpperCase();
+  if (trimmed) return trimmed.slice(0, 1);
+  return "A";
+}
+
+function renderIcon({ options, centerX, centerY, size, idBase }) {
+  const x = Math.round(centerX - size / 2);
+  const y = Math.round(centerY - size / 2);
+
+  if (options.avatarUrl) {
+    const clipId = `${idBase}-icon`;
     return `<g transform="translate(${x}, ${y})">
       ${renderAvatar({
         avatarUrl: options.avatarUrl,
-        avatarEmoji: options.avatarEmoji,
+        avatarEmoji: "",
         size,
         bgColor: "#ffffff",
         textColor: "#b45309",
@@ -159,25 +188,30 @@ function renderCenterMark({ options, centerX, centerY, size, idBase }) {
     </g>`;
   }
 
-  const stroke = "#fb923c";
-  const strokeWidth = Math.max(4, Math.round(size * 0.06));
-  const rx = Math.round(size * 0.46);
-  const ry = Math.round(size * 0.20);
-  const dotR = Math.max(6, Math.round(size * 0.08));
+  if (options.avatarEmoji) {
+    const fontSize = Math.round(size * 0.58);
+    return `<g>
+      <circle cx="${centerX}" cy="${centerY}" r="${Math.round(size / 2)}" fill="#ffffff"/>
+      <text x="${centerX}" y="${centerY}" text-anchor="middle" dominant-baseline="central" font-family="${FONT_STACK}" font-size="${fontSize}" fill="#b45309">${escapeXml(
+      options.avatarEmoji
+    )}</text>
+    </g>`;
+  }
+
+  const initial = getInitial(options.title);
+  const fontSize = Math.round(size * 0.54);
   return `<g>
-    <g fill="none" stroke="${stroke}" stroke-width="${strokeWidth}">
-      <ellipse cx="${centerX}" cy="${centerY}" rx="${rx}" ry="${ry}"/>
-      <ellipse cx="${centerX}" cy="${centerY}" rx="${rx}" ry="${ry}" transform="rotate(60 ${centerX} ${centerY})"/>
-      <ellipse cx="${centerX}" cy="${centerY}" rx="${rx}" ry="${ry}" transform="rotate(-60 ${centerX} ${centerY})"/>
-    </g>
-    <circle cx="${centerX}" cy="${centerY}" r="${dotR}" fill="${stroke}"/>
+    <circle cx="${centerX}" cy="${centerY}" r="${Math.round(size / 2)}" fill="#ffffff"/>
+    <text x="${centerX}" y="${centerY}" text-anchor="middle" dominant-baseline="central" font-family="${FONT_STACK}" font-size="${fontSize}" font-weight="700" fill="#b45309">${escapeXml(
+    initial
+  )}</text>
   </g>`;
 }
 
-function renderTemplateV4(options) {
+function renderTemplateV5(options) {
   const seed = normalizeSeed(options.seed, `${options.title}-${options.author}-${options.template}`);
   const rng = createRng(seed);
-  const idBase = `cover-v4-${seed.toString(16)}`;
+  const idBase = `cover-v5-${seed.toString(16)}`;
 
   const scale = Math.min(options.width / 1600, options.height / 900);
 
@@ -185,9 +219,9 @@ function renderTemplateV4(options) {
   const resolvedMode =
     options.color || bgMode === "solid" ? "solid" : bgMode === "gradient" ? "gradient" : "gradient";
 
-  const bgSolid = options.color || randomChoice(COOL_COLORS, rng);
-  const bgA = randomChoice(COOL_COLORS, rng);
-  const bgB = randomChoice(COOL_COLORS, rng);
+  const bgSolid = options.color || randomChoice(WARM_COLORS, rng);
+  const bgA = randomChoice(WARM_COLORS, rng);
+  const bgB = randomChoice(WARM_COLORS, rng);
   const bgAngle = Math.round(rng() * 360);
   const bgGradientId = `${idBase}-bgGradient`;
   const backgroundFill = resolvedMode === "gradient" ? `url(#${bgGradientId})` : bgSolid;
@@ -199,52 +233,57 @@ function renderTemplateV4(options) {
   </linearGradient>`
       : "";
 
-  const overlay = buildTextureOverlay(
-    { ...options, texture: options.texture || "circuit" },
-    idBase
-  );
+  const overlay =
+    options.texture && String(options.texture).trim()
+      ? buildTextureOverlay(options, idBase)
+      : buildMicroGridOverlay(idBase);
 
   const centerX = Math.round(options.width / 2);
-  const topPadding = Math.round(110 * scale);
-  const iconSize = Math.round(200 * scale);
-  const iconGap = Math.round(36 * scale);
-  const iconCenterY = Math.round(topPadding + iconSize / 2);
-  const titleAreaTop = Math.round(topPadding + iconSize + iconGap);
+  const badgeFontSize = Math.round(28 * scale);
+  const badgePaddingX = Math.round(30 * scale);
+  const badgePaddingY = Math.round(10 * scale);
+  const badgeHeight = Math.round(badgeFontSize + badgePaddingY * 2);
+  const badgeText = options.author || "Anonymous";
+  const badgeWidth = Math.min(
+    Math.round(options.width * 0.62),
+    Math.round(badgeText.length * badgeFontSize * 0.6 + badgePaddingX * 2)
+  );
+  const badgeX = Math.round(centerX - badgeWidth / 2);
+  const badgeRadius = Math.round(badgeHeight / 2);
 
-  const titleMaxWidth = Math.round(options.width * 0.72);
-  const subtitleMaxWidth = Math.round(options.width * 0.68);
+  const titleMaxWidth = Math.round(options.width * 0.74);
 
-  const titleFontSize = Math.round(92 * scale);
-  const titleLineHeight = Math.round(112 * scale);
-  const titleMinFontSize = Math.round(64 * scale);
+  const iconSize = Math.round(150 * scale);
+  const groupGap = Math.round(40 * scale);
 
   const subtitleFontSize = Math.round(36 * scale);
   const subtitleLineHeight = Math.round(48 * scale);
   const subtitleMinFontSize = Math.round(24 * scale);
-  const subtitleGap = options.subtitle ? Math.round(24 * scale) : 0;
-
-  const authorFontSize = Math.round(30 * scale);
-  const authorLineHeight = Math.round(36 * scale);
-  const authorGap = Math.round(26 * scale);
-  const bottomPadding = Math.round(80 * scale);
+  const subtitleGap = options.subtitle ? Math.round(20 * scale) : 0;
 
   const subtitleLayout = options.subtitle
     ? wrapAndFitText({
         text: options.subtitle,
-        maxWidth: subtitleMaxWidth,
+        maxWidth: Math.round(options.width * 0.68),
         maxHeight: Math.round(120 * scale),
         fontSize: subtitleFontSize,
         lineHeight: subtitleLineHeight,
         minFontSize: subtitleMinFontSize,
-        wrap: wrapLinesV4
+        wrap: wrapLinesV5
       })
     : null;
 
   const subtitleHeight = subtitleLayout ? subtitleLayout.lines.length * subtitleLayout.lineHeight : 0;
-  const availableHeight = options.height - bottomPadding - titleAreaTop;
-  const reservedForSubtitle = subtitleLayout ? subtitleHeight + subtitleGap : 0;
-  const reservedForAuthor = options.author ? authorLineHeight + authorGap : 0;
-  const maxTitleHeight = Math.max(1, availableHeight - reservedForSubtitle - reservedForAuthor);
+  const availableTitleBlockHeight =
+    options.height - badgeHeight - iconSize - groupGap * 2;
+  const maxTitleHeight = Math.max(
+    1,
+    availableTitleBlockHeight - (subtitleLayout ? subtitleHeight + subtitleGap : 0)
+  );
+
+  const titleFontSize = Math.round(84 * scale);
+  const titleLineHeight = Math.round(102 * scale);
+  const titleMinFontSize = Math.round(56 * scale);
 
   const fittedTitle = wrapAndFitText({
     text: options.title,
@@ -253,12 +292,20 @@ function renderTemplateV4(options) {
     fontSize: titleFontSize,
     lineHeight: titleLineHeight,
     minFontSize: titleMinFontSize,
-    wrap: wrapLinesV4
+    wrap: wrapLinesV5
   });
 
-  const titleLines = fittedTitle.lines;
-  const titleSvg = `<text x="${centerX}" y="${titleAreaTop}" fill="#ffffff" font-family="${FONT_STACK}" font-size="${fittedTitle.fontSize}" font-weight="800" letter-spacing="-1" text-anchor="middle" dominant-baseline="hanging">
-    ${titleLines
+  const titleBlockHeight =
+    fittedTitle.lines.length * fittedTitle.lineHeight +
+    (subtitleLayout ? subtitleGap + subtitleHeight : 0);
+  const groupHeight = badgeHeight + groupGap + titleBlockHeight + groupGap + iconSize;
+  const groupTop = Math.round((options.height - groupHeight) / 2);
+  const badgeY = groupTop;
+  const titleTop = badgeY + badgeHeight + groupGap;
+  const iconCenterY = Math.round(titleTop + titleBlockHeight + groupGap + iconSize / 2);
+
+  const titleSvg = `<text x="${centerX}" y="${titleTop}" fill="#7c2d12" font-family="${FONT_STACK}" font-size="${fittedTitle.fontSize}" font-weight="800" letter-spacing="-0.6" text-anchor="middle" dominant-baseline="hanging">
+    ${fittedTitle.lines
       .map((line, index) => {
         const dy = index === 0 ? 0 : fittedTitle.lineHeight;
         return `<tspan x="${centerX}" dy="${dy}">${escapeXml(line)}</tspan>`;
@@ -266,11 +313,11 @@ function renderTemplateV4(options) {
       .join("")}
   </text>`;
 
-  let cursorY = titleAreaTop + titleLines.length * fittedTitle.lineHeight;
+  let cursorY = titleTop + fittedTitle.lines.length * fittedTitle.lineHeight;
   const subtitleSvg = subtitleLayout
     ? (() => {
         cursorY += subtitleGap;
-        const subtitleText = `<text x="${centerX}" y="${cursorY}" fill="rgba(255,255,255,0.74)" font-family="${FONT_STACK}" font-size="${subtitleLayout.fontSize}" font-weight="600" text-anchor="middle" dominant-baseline="hanging">
+        const subtitleText = `<text x="${centerX}" y="${cursorY}" fill="rgba(124,45,18,0.72)" font-family="${FONT_STACK}" font-size="${subtitleLayout.fontSize}" font-weight="600" text-anchor="middle" dominant-baseline="hanging">
           ${subtitleLayout.lines
             .map((line, index) => {
               const dy = index === 0 ? 0 : subtitleLayout.lineHeight;
@@ -283,15 +330,7 @@ function renderTemplateV4(options) {
       })()
     : "";
 
-  let authorSvg = "";
-  if (options.author) {
-    cursorY += authorGap;
-    authorSvg = `<text x="${centerX}" y="${cursorY}" fill="rgba(255,255,255,0.70)" font-family="${FONT_STACK}" font-size="${authorFontSize}" font-weight="600" text-anchor="middle" dominant-baseline="hanging">${escapeXml(
-      options.author
-    )}</text>`;
-  }
-
-  const markSvg = renderCenterMark({
+  const iconSvg = renderIcon({
     options,
     centerX,
     centerY: iconCenterY,
@@ -309,13 +348,18 @@ function renderTemplateV4(options) {
   </defs>
   <rect width="100%" height="100%" fill="${backgroundFill}"/>
   ${overlay.layer}
-  ${markSvg}
+  <g>
+    <rect x="${badgeX}" y="${badgeY}" width="${badgeWidth}" height="${badgeHeight}" rx="${badgeRadius}" ry="${badgeRadius}" fill="none" stroke="#b45309" stroke-width="2"/>
+    <text x="${centerX}" y="${Math.round(badgeY + badgeHeight / 2)}" text-anchor="middle" dominant-baseline="central" font-family="${FONT_STACK}" font-size="${badgeFontSize}" font-weight="700" fill="#7c2d12">${escapeXml(
+    badgeText
+  )}</text>
+  </g>
   ${titleSvg}
   ${subtitleSvg}
-  ${authorSvg}
+  ${iconSvg}
 </svg>`;
 }
 
 module.exports = {
-  renderTemplateV4
+  renderTemplateV5
 };

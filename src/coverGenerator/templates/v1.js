@@ -188,18 +188,18 @@ function renderFooterAvatar({
   const y = Math.round(centerY - r);
   const cx = Math.round(x + r);
   const cy = Math.round(centerY);
-  const bgFill = "rgba(0,0,0,0.04)";
-  const stroke = "rgba(0,0,0,0.08)";
+  const bgFill = "#ffffff";
+  const stroke = "rgba(124,45,18,0.18)";
 
   if (!options.avatarUrl && !options.avatarEmoji) {
     return `<g>
       <circle cx="${cx}" cy="${cy}" r="${r}" fill="${bgFill}" stroke="${stroke}" stroke-width="2"/>
-      <circle cx="${cx}" cy="${Math.round(cy - r * 0.12)}" r="${Math.round(r * 0.22)}" fill="rgba(0,0,0,0.10)"/>
+      <circle cx="${cx}" cy="${Math.round(cy - r * 0.12)}" r="${Math.round(r * 0.22)}" fill="rgba(124,45,18,0.28)"/>
       <path d="M ${Math.round(cx - r * 0.46)} ${Math.round(cy + r * 0.38)} C ${Math.round(
       cx - r * 0.16
     )} ${Math.round(cy + r * 0.12)} ${Math.round(cx + r * 0.16)} ${Math.round(
       cy + r * 0.12
-    )} ${Math.round(cx + r * 0.46)} ${Math.round(cy + r * 0.38)}" fill="none" stroke="rgba(0,0,0,0.10)" stroke-width="${Math.max(
+    )} ${Math.round(cx + r * 0.46)} ${Math.round(cy + r * 0.38)}" fill="none" stroke="rgba(124,45,18,0.28)" stroke-width="${Math.max(
       2,
       Math.round(size * 0.06)
     )}" stroke-linecap="round"/>
@@ -247,16 +247,16 @@ function renderTemplateV1(options) {
   const idBase = `cover-v1-${seed.toString(16)}`;
 
   const scale = Math.min(options.width / 1600, options.height / 900);
-  const textColor = "#1f2937";
-  const mutedColor = "#374151";
-  const borderColor = "rgba(0,0,0,0.06)";
+  const textColor = "#7c2d12";
+  const mutedColor = "#b45309";
+  const borderColor = "rgba(124,45,18,0.12)";
 
   const shadowFilterId = `${idBase}-cardShadow`;
   const bgGradientId = `${idBase}-bgGradient`;
   const defsBase = `<filter id="${shadowFilterId}" x="-20%" y="-20%" width="140%" height="140%">
     <feDropShadow dx="0" dy="${Math.round(18 * scale)}" stdDeviation="${Math.round(
     18 * scale
-  )}" flood-color="#000000" flood-opacity="0.18"/>
+  )}" flood-color="#b45309" flood-opacity="0.18"/>
   </filter>`;
 
   const bgMode = normalizeV1BackgroundMode(options);

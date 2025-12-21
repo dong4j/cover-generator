@@ -3,7 +3,8 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { generateCoverSvg } = require("../src/coverGenerator");
+const { buildRandomCoverOptions, generateCoverSvg } = require("../src/coverGenerator");
+const { DEFAULT_AUTHOR, DEFAULT_AVATAR_URLS } = require("../src/config");
 
 test("generateCoverSvg returns svg", () => {
   const svg = generateCoverSvg(
@@ -135,6 +136,97 @@ test("v4 without color uses gradient background", () => {
   );
   assert.match(svg, /<linearGradient\b/);
   assert.match(svg, /fill="url\(#cover-v4-[0-9a-f]+-bgGradient\)"/i);
+});
+
+test("v5 template returns svg", () => {
+  const svg = generateCoverSvg(
+    { title: "Warm Grid", author: "A", seed: 50 },
+    {},
+    "v5"
+  );
+  assert.match(svg, /^<\?xml\b/);
+  assert.match(svg, /cover-v5-/);
+});
+
+test("v5 without color uses gradient background", () => {
+  const svg = generateCoverSvg(
+    { title: "V5 Gradient", author: "A", seed: 51 },
+    {},
+    "v5"
+  );
+  assert.match(svg, /<linearGradient\b/);
+  assert.match(svg, /fill="url\(#cover-v5-[0-9a-f]+-bgGradient\)"/i);
+});
+
+test("v6 template returns svg", () => {
+  const svg = generateCoverSvg(
+    { title: "Clean", author: "A", seed: 60 },
+    {},
+    "v6"
+  );
+  assert.match(svg, /^<\?xml\b/);
+  assert.match(svg, /cover-v6-/);
+});
+
+test("v6 supports gradient background", () => {
+  const svg = generateCoverSvg(
+    { title: "V6 Gradient", author: "A", seed: 61, background: "gradient" },
+    {},
+    "v6"
+  );
+  assert.match(svg, /<linearGradient\b/);
+  assert.match(svg, /fill="url\(#cover-v6-[0-9a-f]+-bgGradient\)"/i);
+});
+
+test("v6 supports texture overlays", () => {
+  const svg = generateCoverSvg(
+    { title: "V6 Texture", author: "A", seed: 62, texture: "dots" },
+    {},
+    "v6"
+  );
+  assert.match(svg, /-texture-dots/);
+});
+
+test("v7 template returns svg", () => {
+  const svg = generateCoverSvg(
+    { title: "Pastel", author: "A", seed: 70 },
+    {},
+    "v7"
+  );
+  assert.match(svg, /^<\?xml\b/);
+  assert.match(svg, /cover-v7-/);
+});
+
+test("v7 supports gradient background", () => {
+  const svg = generateCoverSvg(
+    { title: "V7 Gradient", author: "A", seed: 71, background: "gradient" },
+    {},
+    "v7"
+  );
+  assert.match(svg, /<linearGradient\b/);
+  assert.match(svg, /fill="url\(#cover-v7-[0-9a-f]+-bgGradient\)"/i);
+});
+
+test("v7 supports texture overlays", () => {
+  const svg = generateCoverSvg(
+    { title: "V7 Texture", author: "A", seed: 72, texture: "grid" },
+    {},
+    "v7"
+  );
+  assert.match(svg, /-texture-grid/);
+});
+
+test("random cover uses fixed author and allowed assets", () => {
+  const options = buildRandomCoverOptions(
+    { seed: 123, template: "v6", title: "Random Title" },
+    {}
+  );
+  assert.equal(options.author, DEFAULT_AUTHOR);
+  assert.equal(options.template, "v6");
+  if (options.avatarUrl) {
+    assert.ok(DEFAULT_AVATAR_URLS.includes(options.avatarUrl));
+    assert.equal(options.avatarEmoji, "");
+  }
 });
 
 test("texture overlay is optional and selectable", () => {
