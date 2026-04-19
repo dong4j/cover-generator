@@ -4,7 +4,7 @@
 
 [示例](https://blog.dong4j.site/)
 
-![Cursor 2026-04-20 01.07.39](./assets/Cursor%202026-04-20%2001.07.39.png)
+![Cursor 2026-04-20 01.07.39](https://cdn.dong4j.site/source/image/Cursor%202026-04-20%2001.07.39.webp)
 
 核心目标：
 - 可复现：同样的 `seed + 输入参数` 必定生成一致的封面（方便缓存与构建流程）。
