@@ -7,6 +7,7 @@
 
 const { generateSVG } = require("./exporter");
 const { inlineAvatarInOptions } = require("./avatarEmbedder");
+const { renderSvgToPng } = require("./pngRenderer");
 const { DEFAULT_AUTHOR, DEFAULT_AVATAR_URLS } = require("../config");
 const { clamp, createRng, normalizeSeed, randomChoice } = require("./utils");
 
@@ -72,8 +73,15 @@ function generateCoverSvg(query, body, templateFromPath) {
 
 async function generateCoverSvgAsync(query, body, templateFromPath, deps = {}) {
   const options = buildCoverOptions(query, body, templateFromPath);
-  const resolvedOptions = await inlineAvatarInOptions(options, deps);
+  const resolvedOptions = await inlineAvatarInOptions(options, { ...deps, targetFormat: "svg" });
   return generateSVG(resolvedOptions);
+}
+
+async function generateCoverPngAsync(query, body, templateFromPath, deps = {}) {
+  const options = buildCoverOptions(query, body, templateFromPath);
+  const resolvedOptions = await inlineAvatarInOptions(options, { ...deps, targetFormat: "png" });
+  const svg = generateSVG(resolvedOptions);
+  return renderSvgToPng(svg, resolvedOptions, deps);
 }
 
 function buildRandomCoverOptions(query, body) {
@@ -140,16 +148,25 @@ function generateRandomCoverSvg(query, body) {
 
 async function generateRandomCoverSvgAsync(query, body, deps = {}) {
   const options = buildRandomCoverOptions(query, body);
-  const resolvedOptions = await inlineAvatarInOptions(options, deps);
+  const resolvedOptions = await inlineAvatarInOptions(options, { ...deps, targetFormat: "svg" });
   return generateSVG(resolvedOptions);
+}
+
+async function generateRandomCoverPngAsync(query, body, deps = {}) {
+  const options = buildRandomCoverOptions(query, body);
+  const resolvedOptions = await inlineAvatarInOptions(options, { ...deps, targetFormat: "png" });
+  const svg = generateSVG(resolvedOptions);
+  return renderSvgToPng(svg, resolvedOptions, deps);
 }
 
 module.exports = {
   buildCoverOptions,
   buildRandomCoverOptions,
   defaultOptions,
+  generateCoverPngAsync,
   generateCoverSvg,
   generateCoverSvgAsync,
+  generateRandomCoverPngAsync,
   generateRandomCoverSvg,
   generateRandomCoverSvgAsync,
   parseOptions

@@ -23,7 +23,8 @@ function renderAvatar({ avatarUrl, avatarEmoji, size, bgColor, textColor, clipId
 
   if (avatarUrl) {
     // Note: the server does not fetch avatarUrl; it is embedded as an <image href="...">.
-    return `<clipPath id="${clipId}"><circle cx="${radius}" cy="${radius}" r="${radius}"/></clipPath>
+    return `<defs><clipPath id="${clipId}"><circle cx="${radius}" cy="${radius}" r="${radius}"/></clipPath></defs>
+  <circle cx="${radius}" cy="${radius}" r="${radius}" fill="${background}"/>
   <image href="${escapeXml(
       avatarUrl
     )}" x="0" y="0" width="${size}" height="${size}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${clipId})"/>`;

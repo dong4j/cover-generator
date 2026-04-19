@@ -1,11 +1,11 @@
 # Cover Generation Server
 
-用这个项目来生成博客封面图（SVG）。它是一个极简的 Node.js HTTP 服务：你通过 GET query 或 POST JSON 传入标题、作者、头像等字段，服务端返回一张可直接保存/嵌入的 `image/svg+xml`。
+用这个项目来生成博客封面图（SVG/PNG）。它是一个极简的 Node.js HTTP 服务：你通过 GET query 或 POST JSON 传入标题、作者、头像等字段，服务端返回一张可直接保存/嵌入的图片。
 
 核心目标：
 - 可复现：同样的 `seed + 输入参数` 必定生成一致的封面（方便缓存与构建流程）。
 - 版本化：对外以模板版本（`v1`）作为稳定契约；未来大改动会用新版本号承接。
-- 无依赖：纯 Node.js 核心模块，不引入第三方包。
+- 低依赖：主要逻辑基于 Node.js 核心模块，PNG 渲染使用 `@resvg/resvg-js`。
 
 ## 快速开始
 
@@ -14,7 +14,7 @@
 ```bash
 npm install
 npm start
-# http://localhost:3000
+# http://localhost:4321
 ```
 
 ## 开发与校验
@@ -34,17 +34,20 @@ npm test
 
 - `GET /health`：健康检查
 - `GET /cover` 或 `GET /cover/svg`：生成封面（默认模板 `v1`）
+- `GET /cover/png`：生成 PNG 封面（默认模板 `v1`）
 - `GET /cover/random`：随机封面（除作者外随机，支持 `template` 指定模板版本）
+- `GET /cover/random/png`：随机 PNG 封面
 - `GET /cover/svg/v1`：显式指定模板 `v1`
+- `GET /cover/png/v1`：显式指定模板 `v1` 的 PNG 输出
 - `GET /cover/svg/v2`：显式指定模板 `v2`（左侧大头像 + 右侧卡片文案）
 - `GET /cover/svg/v3`：显式指定模板 `v3`（纯背景大标题风格）
 - `GET /cover/svg/v4`：显式指定模板 `v4`（电路板纹理 + 居中图标标题）
 - `GET /cover/svg/v5`：显式指定模板 `v5`（暖色渐变网格 + 居中标题与单图标）
 - `GET /cover/svg/v6`：显式指定模板 `v6`（极简浅色背景 + 居中图标标题）
 - `GET /cover/svg/v7`：显式指定模板 `v7`（粉色渐变 + 左图标右文案）
-- `POST /cover...`：同字段，JSON body
+- `POST /cover...`：同字段，JSON body（`/cover/svg...` 返回 SVG，`/cover/png...` 返回 PNG）
 
-返回类型：`image/svg+xml`。
+返回类型：`image/svg+xml` 或 `image/png`。
 
 ## 参数说明（v1）
 
@@ -61,7 +64,7 @@ npm test
 | `color` | string | warm auto | 背景主色；传了则固定背景为纯色（不走渐变随机）。 |
 | `accent` | string | light auto | 卡片底色；不传则随机浅色。 |
 | `avatarEmoji` | string | empty | 单个 emoji；优先于 `avatarUrl`。 |
-| `avatarUrl` | string | empty | 头像 URL；服务端不下载，只在 SVG 里引用 `<image href="...">`。 |
+| `avatarUrl` | string | empty | 头像 URL；服务端会尝试下载并内嵌到 SVG（失败时回退为外链引用）。 |
 
 ## 随机封面（/cover/random）
 
@@ -122,8 +125,9 @@ npm test
 
 ```bash
 # 默认（v1）
-curl "http://localhost:3000/cover?title=Hello%20World&author=%40dong4j&avatarEmoji=%F0%9F%91%8B" > cover.svg
-curl -X POST "http://localhost:3000/cover" \
+curl "http://localhost:4321/cover?title=Hello%20World&author=%40dong4j&avatarEmoji=%F0%9F%91%8B" > cover.svg
+curl "http://localhost:4321/cover/png?title=Hello%20World&author=%40dong4j&avatarEmoji=%F0%9F%91%8B" > cover.png
+curl -X POST "http://localhost:4321/cover" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Hello World",
@@ -132,8 +136,8 @@ curl -X POST "http://localhost:3000/cover" \
   }' > cover.svg
 
 # 固定 seed，便于缓存
-curl "http://localhost:3000/cover/svg/v1?title=Hello&author=A&seed=2025" > cover.svg
-curl -X POST "http://localhost:3000/cover/svg/v1" \
+curl "http://localhost:4321/cover/svg/v1?title=Hello&author=A&seed=2025" > cover.svg
+curl -X POST "http://localhost:4321/cover/svg/v1" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Hello",
@@ -142,8 +146,8 @@ curl -X POST "http://localhost:3000/cover/svg/v1" \
   }' > cover.svg
 
 # 强制渐变背景（暖色系随机渐变）
-curl "http://localhost:3000/cover/svg/v1?title=Gradient&author=A&background=gradient" > cover.svg
-curl -X POST "http://localhost:3000/cover/svg/v1" \
+curl "http://localhost:4321/cover/svg/v1?title=Gradient&author=A&background=gradient" > cover.svg
+curl -X POST "http://localhost:4321/cover/svg/v1" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Gradient",
@@ -152,8 +156,8 @@ curl -X POST "http://localhost:3000/cover/svg/v1" \
   }' > cover.svg
 
 # 固定背景色/卡片色
-curl "http://localhost:3000/cover/svg/v1?title=Fixed%20Color&author=A&color=%23f97316&accent=%23fff7ed" > cover.svg
-curl -X POST "http://localhost:3000/cover/svg/v1" \
+curl "http://localhost:4321/cover/svg/v1?title=Fixed%20Color&author=A&color=%23f97316&accent=%23fff7ed" > cover.svg
+curl -X POST "http://localhost:4321/cover/svg/v1" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Fixed Color",
@@ -163,7 +167,7 @@ curl -X POST "http://localhost:3000/cover/svg/v1" \
   }' > cover.svg
 
 # POST JSON（同 GET 字段）
-curl -X POST "http://localhost:3000/cover/svg/v1" \
+curl -X POST "http://localhost:4321/cover/svg/v1" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "架构设计：如何在 IntelliAI Engine 中优雅集成非标准协议的 AI 服务",
@@ -175,8 +179,8 @@ curl -X POST "http://localhost:3000/cover/svg/v1" \
   }' > cover.svg
 
 # v2（左头像 + 右卡片）
-curl "http://localhost:3000/cover/svg/v2?title=Hello&author=@dong4j&avatarEmoji=%F0%9F%91%8B&seed=12" > cover.svg
-curl -X POST "http://localhost:3000/cover/svg/v2" \
+curl "http://localhost:4321/cover/svg/v2?title=Hello&author=@dong4j&avatarEmoji=%F0%9F%91%8B&seed=12" > cover.svg
+curl -X POST "http://localhost:4321/cover/svg/v2" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Hello",
@@ -186,8 +190,8 @@ curl -X POST "http://localhost:3000/cover/svg/v2" \
   }' > cover.svg
 
 # v3（纯背景大标题）
-curl "http://localhost:3000/cover/svg/v3?title=%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%EF%BC%9A%E5%A6%82%E4%BD%95%E5%9C%A8%20IntelliAI%20Engine%20%E4%B8%AD%E4%BC%98%E9%9B%85%E9%9B%86%E6%88%90%E9%9D%9E%E6%A0%87%E5%87%86%E5%8D%8F%E8%AE%AE%E7%9A%84%20AI%20%E6%9C%8D%E5%8A%A1&author=%40dong4j&avatarEmoji=%F0%9F%91%8B&seed=2025&texture=dots" > cover.svg
-curl -X POST "http://localhost:3000/cover/svg/v3" \
+curl "http://localhost:4321/cover/svg/v3?title=%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%EF%BC%9A%E5%A6%82%E4%BD%95%E5%9C%A8%20IntelliAI%20Engine%20%E4%B8%AD%E4%BC%98%E9%9B%85%E9%9B%86%E6%88%90%E9%9D%9E%E6%A0%87%E5%87%86%E5%8D%8F%E8%AE%AE%E7%9A%84%20AI%20%E6%9C%8D%E5%8A%A1&author=%40dong4j&avatarEmoji=%F0%9F%91%8B&seed=2025&texture=dots" > cover.svg
+curl -X POST "http://localhost:4321/cover/svg/v3" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "架构设计：如何在 IntelliAI Engine 中优雅集成非标准协议的 AI 服务",
@@ -198,8 +202,8 @@ curl -X POST "http://localhost:3000/cover/svg/v3" \
   }' > cover.svg
 
 # texture=grid（细网格叠加）
-curl "http://localhost:3000/cover/svg/v3?title=Grid%20Overlay&author=%40dong4j&seed=101&texture=grid" > cover.svg
-curl -X POST "http://localhost:3000/cover/svg/v3" \
+curl "http://localhost:4321/cover/svg/v3?title=Grid%20Overlay&author=%40dong4j&seed=101&texture=grid" > cover.svg
+curl -X POST "http://localhost:4321/cover/svg/v3" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Grid Overlay",
@@ -209,8 +213,8 @@ curl -X POST "http://localhost:3000/cover/svg/v3" \
   }' > cover.svg
 
 # texture=graph（主/次网格叠加）
-curl "http://localhost:3000/cover/svg/v3?title=Graph%20Overlay&author=%40dong4j&seed=102&texture=graph" > cover.svg
-curl -X POST "http://localhost:3000/cover/svg/v3" \
+curl "http://localhost:4321/cover/svg/v3?title=Graph%20Overlay&author=%40dong4j&seed=102&texture=graph" > cover.svg
+curl -X POST "http://localhost:4321/cover/svg/v3" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Graph Overlay",
@@ -220,8 +224,8 @@ curl -X POST "http://localhost:3000/cover/svg/v3" \
   }' > cover.svg
 
 # texture=dots（点阵叠加）
-curl "http://localhost:3000/cover/svg/v3?title=Dots%20Overlay&author=%40dong4j&seed=103&texture=dots" > cover.svg
-curl -X POST "http://localhost:3000/cover/svg/v3" \
+curl "http://localhost:4321/cover/svg/v3?title=Dots%20Overlay&author=%40dong4j&seed=103&texture=dots" > cover.svg
+curl -X POST "http://localhost:4321/cover/svg/v3" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Dots Overlay",
@@ -231,8 +235,8 @@ curl -X POST "http://localhost:3000/cover/svg/v3" \
   }' > cover.svg
 
 # v4（电路板纹理 + 居中布局）
-curl "http://localhost:3000/cover/svg/v4?title=React&subtitle=The%20library%20for%20web%20and%20native%20user%20interfaces&author=%40dong4j&seed=2026&texture=circuit&avatarUrl=https://cdn.dong4j.site/source/image/avatar.webp" > cover.svg
-curl -X POST "http://localhost:3000/cover/svg/v4" \
+curl "http://localhost:4321/cover/svg/v4?title=React&subtitle=The%20library%20for%20web%20and%20native%20user%20interfaces&author=%40dong4j&seed=2026&texture=circuit&avatarUrl=https://cdn.dong4j.site/source/image/avatar.webp" > cover.svg
+curl -X POST "http://localhost:4321/cover/svg/v4" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "React",
@@ -244,8 +248,8 @@ curl -X POST "http://localhost:3000/cover/svg/v4" \
   }' > cover.svg
 
 # v5（暖色网格 + 居中标题与单图标）
-curl "http://localhost:3000/cover/svg/v5?title=Launch%20a%20directory%20with%20Next.js%20and%20Sanity&author=%40dong4j&avatarEmoji=%F0%9F%94%A5&seed=2028" > cover.svg
-curl -X POST "http://localhost:3000/cover/svg/v5" \
+curl "http://localhost:4321/cover/svg/v5?title=Launch%20a%20directory%20with%20Next.js%20and%20Sanity&author=%40dong4j&avatarEmoji=%F0%9F%94%A5&seed=2028" > cover.svg
+curl -X POST "http://localhost:4321/cover/svg/v5" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Launch a directory with Next.js and Sanity",
@@ -255,8 +259,8 @@ curl -X POST "http://localhost:3000/cover/svg/v5" \
   }' > cover.svg
 
 # v6（浅色极简 + 居中图标）
-curl "http://localhost:3000/cover/svg/v6?title=IndieHub&subtitle=The%20best%20directory%20for%20indie%20makers&author=%40dong4j&seed=2029&avatarEmoji=%F0%9F%9A%80&background=gradient&texture=circuit" > cover.svg
-curl -X POST "http://localhost:3000/cover/svg/v6" \
+curl "http://localhost:4321/cover/svg/v6?title=IndieHub&subtitle=The%20best%20directory%20for%20indie%20makers&author=%40dong4j&seed=2029&avatarEmoji=%F0%9F%9A%80&background=gradient&texture=circuit" > cover.svg
+curl -X POST "http://localhost:4321/cover/svg/v6" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "IndieHub",
@@ -269,8 +273,8 @@ curl -X POST "http://localhost:3000/cover/svg/v6" \
   }' > cover.svg
 
 # v7（粉色渐变 + 左图标右文案）
-curl "http://localhost:3000/cover/svg/v7?title=IndieHub&subtitle=The%20best%20directory%20for%20indie%20makers&author=%40dong4j&seed=2029&avatarEmoji=%F0%9F%9A%80&texture=dots" > cover.svg
-curl -X POST "http://localhost:3000/cover/svg/v7" \
+curl "http://localhost:4321/cover/svg/v7?title=IndieHub&subtitle=The%20best%20directory%20for%20indie%20makers&author=%40dong4j&seed=2029&avatarEmoji=%F0%9F%9A%80&texture=dots" > cover.svg
+curl -X POST "http://localhost:4321/cover/svg/v7" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "IndieHub",
@@ -282,8 +286,8 @@ curl -X POST "http://localhost:3000/cover/svg/v7" \
   }' > cover.svg
 
 # /cover/random（随机封面）
-curl "http://localhost:3000/cover/random?title=IndieHub&template=v7" > cover.svg
-curl -X POST "http://localhost:3000/cover/random" \
+curl "http://localhost:4321/cover/random?title=IndieHub&template=v7" > cover.svg
+curl -X POST "http://localhost:4321/cover/random" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "IndieHub",

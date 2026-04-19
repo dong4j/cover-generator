@@ -59,22 +59,53 @@ function sendSvg(res, svg) {
   res.end(payload);
 }
 
-function matchCoverTemplatePath(pathname) {
+function sendPng(res, pngBuffer) {
+  const payload = Buffer.isBuffer(pngBuffer) ? pngBuffer : Buffer.from(pngBuffer);
+  res.writeHead(200, {
+    "Content-Type": "image/png",
+    "Cache-Control": "no-store",
+    "Content-Length": payload.length
+  });
+  res.end(payload);
+}
+
+function matchCoverTemplatePath(pathname, format) {
   // Keep a strict allowlist to avoid accidental exposure of removed versions.
-  const match = pathname.match(/^\/cover\/svg\/(v1|v2|v3|v4|v5|v6|v7)$/);
+  const safeFormat = format === "png" ? "png" : "svg";
+  const match = pathname.match(new RegExp(`^/cover/${safeFormat}/(v1|v2|v3|v4|v5|v6|v7)$`));
   return match ? match[1] : null;
 }
 
-function isRandomCoverPath(pathname) {
-  return pathname === "/cover/random";
+function matchRandomCoverPath(pathname) {
+  if (pathname === "/cover/random") return "svg";
+  if (pathname === "/cover/random/png") return "png";
+  return null;
 }
 
-async function handleCoverRequest(req, res, url, templateFromPath, deps) {
+async function handleCoverRequest(req, res, url, templateFromPath, format, deps) {
   try {
     const body =
       req.method === "POST"
         ? await parseJSONBody(req, deps.maxBodyBytes)
         : Object.create(null);
+    if (format === "png") {
+      if (
+        typeof deps.generateCoverPng !== "function" ||
+        typeof deps.generateRandomCoverPng !== "function"
+      ) {
+        throw new Error("PNG endpoint is unavailable");
+      }
+      const png = templateFromPath === "random"
+        ? await deps.generateRandomCoverPng(Object.fromEntries(url.searchParams), body)
+        : await deps.generateCoverPng(
+            Object.fromEntries(url.searchParams),
+            body,
+            templateFromPath || undefined
+          );
+      sendPng(res, png);
+      return;
+    }
+
     const svg = templateFromPath === "random"
       ? await deps.generateRandomCoverSvg(Object.fromEntries(url.searchParams), body)
       : await deps.generateCoverSvg(
@@ -84,18 +115,31 @@ async function handleCoverRequest(req, res, url, templateFromPath, deps) {
         );
     sendSvg(res, svg);
   } catch (err) {
-    const status = err && err.message === "Payload too large" ? 413 : 400;
+    const status =
+      err && err.message === "Payload too large"
+        ? 413
+        : err && err.message === "PNG endpoint is unavailable"
+          ? 501
+          : 400;
     sendJson(res, status, { error: err && err.message ? err.message : "Bad request" });
   }
 }
 
-function createServer({ generateCoverSvg, generateRandomCoverSvg, maxBodyBytes } = {}) {
+function createServer({
+  generateCoverSvg,
+  generateRandomCoverSvg,
+  generateCoverPng,
+  generateRandomCoverPng,
+  maxBodyBytes
+} = {}) {
   if (typeof generateCoverSvg !== "function" || typeof generateRandomCoverSvg !== "function") {
     throw new TypeError("createServer requires generateCoverSvg and generateRandomCoverSvg");
   }
 
   const deps = {
+    generateCoverPng,
     generateCoverSvg,
+    generateRandomCoverPng,
     generateRandomCoverSvg,
     maxBodyBytes: Number.isFinite(maxBodyBytes) ? maxBodyBytes : DEFAULT_MAX_BODY_BYTES
   };
@@ -108,17 +152,22 @@ function createServer({ generateCoverSvg, generateRandomCoverSvg, maxBodyBytes }
       return;
     }
 
-    const templatePath = matchCoverTemplatePath(url.pathname);
-    const randomPath = isRandomCoverPath(url.pathname);
+    const templatePath = matchCoverTemplatePath(url.pathname, "svg");
+    const pngTemplatePath = matchCoverTemplatePath(url.pathname, "png");
+    const randomPathFormat = matchRandomCoverPath(url.pathname);
     const isCoverRoute =
       url.pathname === "/cover" ||
       url.pathname === "/cover/svg" ||
+      url.pathname === "/cover/png" ||
       templatePath !== null ||
-      randomPath;
+      pngTemplatePath !== null ||
+      randomPathFormat !== null;
 
     if (isCoverRoute && (req.method === "GET" || req.method === "POST")) {
-      const handlerTemplate = randomPath ? "random" : templatePath || undefined;
-      await handleCoverRequest(req, res, url, handlerTemplate, deps);
+      const format = randomPathFormat || (pngTemplatePath !== null || url.pathname === "/cover/png" ? "png" : "svg");
+      const handlerTemplate =
+        randomPathFormat !== null ? "random" : format === "png" ? pngTemplatePath || undefined : templatePath || undefined;
+      await handleCoverRequest(req, res, url, handlerTemplate, format, deps);
       return;
     }
 

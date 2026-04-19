@@ -22,12 +22,35 @@ const templates = {
   v7: renderTemplateV7
 };
 
+const TYPOGRAPHY_STYLE_BLOCK = `<style id="cover-typography-style"><![CDATA[
+text {
+  font-kerning: none;
+  font-variant-ligatures: none;
+  text-rendering: geometricPrecision;
+}
+]]></style>`;
+
+function injectTypographyStyle(svg) {
+  const str = String(svg || "");
+  if (!str.includes("<svg")) return str;
+  if (str.includes('id="cover-typography-style"')) return str;
+  if (str.includes("<defs>")) {
+    return str.replace("<defs>", `<defs>\n    ${TYPOGRAPHY_STYLE_BLOCK}`);
+  }
+  const svgTagEnd = str.indexOf(">");
+  if (svgTagEnd === -1) return str;
+  return `${str.slice(0, svgTagEnd + 1)}
+  <defs>${TYPOGRAPHY_STYLE_BLOCK}</defs>${str.slice(svgTagEnd + 1)}`;
+}
+
 function generateSVG(options) {
   const template = templates[options.template] || templates.v1;
-  return template(options);
+  const svg = template(options);
+  return injectTypographyStyle(svg);
 }
 
 module.exports = {
   generateSVG,
+  injectTypographyStyle,
   templates
 };

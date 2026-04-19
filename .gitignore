@@ -35,6 +35,9 @@ out/
 # Generated artifacts
 *.svg
 
+# PM2
+logs/
+
 # Editors
 .idea/
 .vscode/

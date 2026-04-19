@@ -17,7 +17,7 @@
 ## 开发、构建与运行
 - 需要 Node.js >= 18。
 - `npm install`：安装依赖（仅使用 Node.js 核心模块，无额外依赖）。
-- `npm start`：启动本地服务（默认端口 3000）。
+- `npm start`：启动本地服务（默认端口 4321）。
 - `npm run dev`：开发模式（`node --watch` 自动重启）。
 - `npm run check`：语法检查（轻量替代 lint）。
 - `npm test`：运行 `node:test`。

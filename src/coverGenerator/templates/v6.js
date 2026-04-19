@@ -172,9 +172,11 @@ function renderIcon({ options, centerX, centerY, size, idBase }) {
 
   if (options.avatarUrl) {
     return `<g>
-      <clipPath id="${clipId}">
-        <circle cx="${centerX}" cy="${centerY}" r="${r}"/>
-      </clipPath>
+      <defs>
+        <clipPath id="${clipId}">
+          <circle cx="${centerX}" cy="${centerY}" r="${r}"/>
+        </clipPath>
+      </defs>
       <circle cx="${centerX}" cy="${centerY}" r="${r}" fill="${bg}"/>
       <image href="${escapeXml(
       options.avatarUrl

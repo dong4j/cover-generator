@@ -5,6 +5,7 @@ const assert = require("node:assert/strict");
 
 const {
   buildRandomCoverOptions,
+  generateCoverPngAsync,
   generateCoverSvg,
   generateCoverSvgAsync
 } = require("../src/coverGenerator");
@@ -45,6 +46,36 @@ test("generateCoverSvgAsync supports avatar embedding pipeline", async () => {
     }
   );
   assert.match(svg, /data:image\/webp;base64,/);
+});
+
+test("generateCoverPngAsync returns PNG bytes with custom renderer", async () => {
+  const png = await generateCoverPngAsync(
+    {
+      title: "PNG Cover",
+      author: "A",
+      seed: "3",
+      avatarUrl: "https://cdn.example.com/avatar.webp",
+      width: 800
+    },
+    {},
+    "v2",
+    {
+      dnsLookup: async () => [{ address: "93.184.216.34" }],
+      fetchImpl: async () => ({
+        ok: true,
+        headers: { get: () => "image/webp" },
+        arrayBuffer: async () => Uint8Array.from([1, 2, 3]).buffer
+      }),
+      renderPng: async (svg, options) => {
+        assert.match(svg, /<svg\b/);
+        assert.equal(options.width, 800);
+        return Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+      }
+    }
+  );
+
+  assert.ok(Buffer.isBuffer(png));
+  assert.equal(png.toString("hex"), "89504e47");
 });
 
 test("same seed produces deterministic output", () => {
