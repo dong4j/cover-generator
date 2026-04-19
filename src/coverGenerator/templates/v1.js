@@ -6,7 +6,12 @@
 const { renderAvatar } = require("../shapeEngine");
 const { escapeXml, wrapLines } = require("../typographyEngine");
 const { buildTextureOverlay } = require("../overlayEngine");
-const { createRng, normalizeSeed, randomChoice } = require("../utils");
+const {
+  createRng,
+  normalizeSeed,
+  randomChoice,
+  resolveScaledAvatarSize
+} = require("../utils");
 
 const FONT_STACK =
   "Inter, 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif";
@@ -189,11 +194,10 @@ function renderFooterAvatar({
   const cx = Math.round(x + r);
   const cy = Math.round(centerY);
   const bgFill = "#ffffff";
-  const stroke = "rgba(124,45,18,0.18)";
 
   if (!options.avatarUrl && !options.avatarEmoji) {
     return `<g>
-      <circle cx="${cx}" cy="${cy}" r="${r}" fill="${bgFill}" stroke="${stroke}" stroke-width="2"/>
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="${bgFill}"/>
       <circle cx="${cx}" cy="${Math.round(cy - r * 0.12)}" r="${Math.round(r * 0.22)}" fill="rgba(124,45,18,0.28)"/>
       <path d="M ${Math.round(cx - r * 0.46)} ${Math.round(cy + r * 0.38)} C ${Math.round(
       cx - r * 0.16
@@ -209,7 +213,7 @@ function renderFooterAvatar({
   if (options.avatarEmoji) {
     const fontSize = Math.round(size * 0.62);
     return `<g>
-      <circle cx="${cx}" cy="${cy}" r="${r}" fill="${bgFill}" stroke="${stroke}" stroke-width="2"/>
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="${bgFill}"/>
       <text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="central" font-family="${FONT_STACK}" font-size="${fontSize}">${escapeXml(
       options.avatarEmoji
     )}</text>
@@ -220,7 +224,7 @@ function renderFooterAvatar({
 
   const clipId = `${idBase}-footerAvatarClip-${index}`;
   return `<g>
-    <circle cx="${cx}" cy="${cy}" r="${r}" fill="${bgFill}" stroke="${stroke}" stroke-width="2"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="${bgFill}"/>
     <g transform="translate(${x}, ${y})">
       ${renderAvatar({
         avatarUrl: options.avatarUrl,
@@ -291,11 +295,12 @@ function renderTemplateV1(options) {
   const cardPadding = Math.round(110 * scale);
 
   const fontBump = Math.round(2 * scale);
-  const titleFontSize = Math.round(98 * scale) + fontBump;
-  const lineHeight = Math.round(116 * scale);
+  const titleFontSize = Math.round(96 * scale) + fontBump;
+  const lineHeight = Math.round(110 * scale);
   const subtitleFontSize = Math.round(44 * scale) + fontBump;
   const authorFontSize = Math.round(52 * scale) + fontBump;
-  const avatarSize = Math.round(92 * scale);
+  // v1 avatar lives in the footer; keep it compact so title remains dominant.
+  const avatarSize = resolveScaledAvatarSize(options, scale, 0.32, 64, 104);
 
   const availableTextWidth = cardW - cardPadding * 2;
   const subtitleGap = options.subtitle ? Math.round(26 * scale) : 0;
@@ -315,7 +320,7 @@ function renderTemplateV1(options) {
     maxHeight: Math.max(1, maxTitleHeight),
     fontSize: titleFontSize,
     lineHeight,
-    minFontSize: Math.round(66 * scale),
+    minFontSize: Math.round(64 * scale),
     wrap: wrapLinesV1
   });
   const titleLines = fittedTitle.lines;

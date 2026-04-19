@@ -9,7 +9,6 @@ const { escapeXml } = require("./typographyEngine");
 function renderAvatar({ avatarUrl, avatarEmoji, size, bgColor, textColor, clipId }) {
   const radius = size / 2;
   const background = bgColor || "rgba(255,255,255,0.14)";
-  const foreground = textColor || "#ffffff";
 
   // Emoji has higher priority than avatarUrl to avoid remote fetch reliance when both are present.
   if (avatarEmoji) {
@@ -27,8 +26,7 @@ function renderAvatar({ avatarUrl, avatarEmoji, size, bgColor, textColor, clipId
     return `<clipPath id="${clipId}"><circle cx="${radius}" cy="${radius}" r="${radius}"/></clipPath>
   <image href="${escapeXml(
       avatarUrl
-    )}" x="0" y="0" width="${size}" height="${size}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${clipId})"/>
-  <circle cx="${radius}" cy="${radius}" r="${radius}" fill="none" stroke="${foreground}" stroke-width="6"/>`;
+    )}" x="0" y="0" width="${size}" height="${size}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${clipId})"/>`;
   }
 
   return `<circle cx="${radius}" cy="${radius}" r="${radius}" fill="${background}"/>`;

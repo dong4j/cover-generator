@@ -76,8 +76,8 @@ async function handleCoverRequest(req, res, url, templateFromPath, deps) {
         ? await parseJSONBody(req, deps.maxBodyBytes)
         : Object.create(null);
     const svg = templateFromPath === "random"
-      ? deps.generateRandomCoverSvg(Object.fromEntries(url.searchParams), body)
-      : deps.generateCoverSvg(
+      ? await deps.generateRandomCoverSvg(Object.fromEntries(url.searchParams), body)
+      : await deps.generateCoverSvg(
           Object.fromEntries(url.searchParams),
           body,
           templateFromPath || undefined

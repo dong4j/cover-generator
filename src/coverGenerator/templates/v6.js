@@ -5,7 +5,12 @@
 
 const { escapeXml, wrapLines } = require("../typographyEngine");
 const { buildTextureOverlay } = require("../overlayEngine");
-const { createRng, normalizeSeed, randomChoice } = require("../utils");
+const {
+  createRng,
+  normalizeSeed,
+  randomChoice,
+  resolveScaledAvatarSize
+} = require("../utils");
 
 const FONT_STACK =
   "Inter, 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif";
@@ -229,12 +234,12 @@ function renderTemplateV6(options) {
   const overlay = buildTextureOverlay(options, idBase);
 
   const centerX = Math.round(options.width / 2);
-  const iconSize = Math.round(128 * scale);
+  const iconSize = resolveScaledAvatarSize(options, scale, 0.48, 92, 160);
   const gap = Math.round(26 * scale);
 
-  const titleFontSize = Math.round(68 * scale);
-  const titleLineHeight = Math.round(84 * scale);
-  const titleMinFontSize = Math.round(50 * scale);
+  const titleFontSize = Math.round(88 * scale);
+  const titleLineHeight = Math.round(104 * scale);
+  const titleMinFontSize = Math.round(56 * scale);
   const titleMaxWidth = Math.round(options.width * 0.68);
 
   const subtitleFontSize = Math.round(34 * scale);

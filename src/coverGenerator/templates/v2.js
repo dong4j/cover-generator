@@ -6,7 +6,12 @@
 const { renderAvatar } = require("../shapeEngine");
 const { escapeXml, wrapLines } = require("../typographyEngine");
 const { buildTextureOverlay } = require("../overlayEngine");
-const { createRng, normalizeSeed, randomChoice } = require("../utils");
+const {
+  createRng,
+  normalizeSeed,
+  randomChoice,
+  resolveAvatarSizeV2Rule
+} = require("../utils");
 
 const FONT_STACK =
   "Inter, 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif";
@@ -32,10 +37,6 @@ const LIGHT_CARD_COLORS = [
   "#f0fdf4",
   "#ecfeff"
 ];
-
-function clampInt(value, min, max) {
-  return Math.min(Math.max(value, min), max);
-}
 
 function normalizeBackgroundMode(options) {
   const mode = String(options.background || "auto").toLowerCase();
@@ -191,7 +192,7 @@ function renderLeftAvatar({ options, x, y, size, idBase, index }) {
     const cY = Math.round(cy + r * 0.10);
     const strokeWidth = Math.max(2, Math.round(size * 0.05));
     return `<g>
-      <circle cx="${cx}" cy="${cy}" r="${r}" fill="#ffffff" stroke="rgba(124,45,18,0.14)" stroke-width="2"/>
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="#ffffff"/>
       <circle cx="${cx}" cy="${headCy}" r="${headR}" fill="rgba(124,45,18,0.18)"/>
       <path d="M ${leftX} ${shoulderY} C ${c1x} ${cY} ${c2x} ${cY} ${rightX} ${shoulderY}" fill="none" stroke="rgba(124,45,18,0.18)" stroke-width="${strokeWidth}" stroke-linecap="round"/>
     </g>`;
@@ -200,7 +201,7 @@ function renderLeftAvatar({ options, x, y, size, idBase, index }) {
   if (options.avatarEmoji) {
     const emojiFontSize = Math.round(size * 0.46);
     return `<g>
-      <circle cx="${cx}" cy="${cy}" r="${r}" fill="#ffffff" stroke="rgba(124,45,18,0.14)" stroke-width="2"/>
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="#ffffff"/>
       <text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="central" font-family="${FONT_STACK}" font-size="${emojiFontSize}">${escapeXml(
       options.avatarEmoji
     )}</text>
@@ -258,12 +259,7 @@ function renderTemplateV2(options) {
   const cardPadding = Math.round(96 * scale);
 
   const leftAreaW = Math.max(outerPadding, cardX - outerPadding);
-  const avatarSize = clampInt(
-    // Slightly smaller than the initial v2 to avoid an oversized left avatar circle.
-    Math.round(Math.min(leftAreaW * 0.62, options.height * 0.42)),
-    Math.round(170 * scale),
-    Math.round(340 * scale)
-  );
+  const avatarSize = resolveAvatarSizeV2Rule(options, scale);
   const avatarX = Math.round(outerPadding + (leftAreaW - avatarSize) / 2);
   const avatarY = Math.round((options.height - avatarSize) / 2);
 
@@ -285,16 +281,17 @@ function renderTemplateV2(options) {
   const titleFontSize = Math.round(96 * scale);
   const lineHeight = Math.round(110 * scale);
   const subtitleFontSize = Math.round(44 * scale);
-  const authorFontSize = Math.round(56 * scale);
+  const authorFontSize = Math.round(46 * scale);
+  const authorLineHeight = Math.round(54 * scale);
+  const authorMinFontSize = Math.round(24 * scale);
 
   const availableTextWidth = cardW - cardPadding * 2;
   const subtitleGap = options.subtitle ? Math.round(26 * scale) : 0;
-  const footerGap = Math.round(70 * scale);
-  const footerHeight = authorFontSize + footerGap;
+  const contentBottomGap = Math.round(30 * scale);
   const maxTitleHeight =
     cardH -
     cardPadding * 2 -
-    footerHeight -
+    contentBottomGap -
     (options.subtitle ? subtitleFontSize + subtitleGap : 0);
 
   const fittedTitle = wrapAndFitText({
@@ -314,7 +311,7 @@ function renderTemplateV2(options) {
   const titleY =
     cardY +
     cardPadding +
-    Math.max(0, Math.round((cardH - cardPadding * 2 - footerHeight - titleBlockHeight) / 2));
+    Math.max(0, Math.round((cardH - cardPadding * 2 - contentBottomGap - titleBlockHeight) / 2));
 
   const cardSvg = renderCard({
     x: cardX,
@@ -353,11 +350,31 @@ function renderTemplateV2(options) {
       )}</text>`
     : "";
 
-  const authorSvg = `<text x="${cardX + cardPadding}" y="${
-    cardY + cardH - cardPadding
-  }" fill="${textColor}" font-family="${FONT_STACK}" font-size="${authorFontSize}" font-weight="800" dominant-baseline="alphabetic">${escapeXml(
-    options.author
-  )}</text>`;
+  const authorGap = Math.round(24 * scale);
+  const authorMaxWidth = Math.max(1, Math.round(leftAreaW * 0.92));
+  const authorMaxHeight = Math.max(
+    1,
+    options.height - Math.round(avatarY + avatarSize + authorGap) - outerPadding
+  );
+  const authorLayout = wrapAndFitText({
+    text: options.author,
+    maxWidth: authorMaxWidth,
+    maxHeight: authorMaxHeight,
+    fontSize: authorFontSize,
+    lineHeight: authorLineHeight,
+    minFontSize: authorMinFontSize,
+    wrap: wrapLinesV2
+  });
+  const authorCenterX = Math.round(avatarX + avatarSize / 2);
+  const authorY = Math.round(avatarY + avatarSize + authorGap);
+  const authorSvg = `<text x="${authorCenterX}" y="${authorY}" fill="${textColor}" font-family="${FONT_STACK}" font-size="${authorLayout.fontSize}" font-weight="700" text-anchor="middle" dominant-baseline="hanging">
+    ${authorLayout.lines
+      .map((line, index) => {
+        const dy = index === 0 ? 0 : authorLayout.lineHeight;
+        return `<tspan x="${authorCenterX}" dy="${dy}">${escapeXml(line)}</tspan>`;
+      })
+      .join("")}
+  </text>`;
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="${options.width}" height="${options.height}" viewBox="0 0 ${options.width} ${options.height}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Blog cover for ${escapeXml(

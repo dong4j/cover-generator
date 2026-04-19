@@ -6,7 +6,12 @@
 const { renderAvatar } = require("../shapeEngine");
 const { escapeXml, wrapLines } = require("../typographyEngine");
 const { buildTextureOverlay } = require("../overlayEngine");
-const { createRng, normalizeSeed, randomChoice } = require("../utils");
+const {
+  createRng,
+  normalizeSeed,
+  randomChoice,
+  resolveScaledAvatarSize
+} = require("../utils");
 
 const FONT_STACK =
   "Inter, 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif";
@@ -155,7 +160,6 @@ function renderTopAvatar({ options, x, y, size, idBase }) {
   const r = size / 2;
   const cx = Math.round(x + r);
   const cy = Math.round(y + r);
-  const stroke = "rgba(255,255,255,0.22)";
 
   if (!options.avatarUrl && !options.avatarEmoji) {
     const headR = Math.round(r * 0.18);
@@ -168,7 +172,7 @@ function renderTopAvatar({ options, x, y, size, idBase }) {
     const cY = Math.round(cy + r * 0.10);
     const strokeWidth = Math.max(2, Math.round(size * 0.05));
     return `<g>
-      <circle cx="${cx}" cy="${cy}" r="${r}" fill="#ffffff" stroke="${stroke}" stroke-width="2"/>
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="#ffffff"/>
       <circle cx="${cx}" cy="${headCy}" r="${headR}" fill="rgba(255,255,255,0.28)"/>
       <path d="M ${leftX} ${shoulderY} C ${c1x} ${cY} ${c2x} ${cY} ${rightX} ${shoulderY}" fill="none" stroke="rgba(255,255,255,0.28)" stroke-width="${strokeWidth}" stroke-linecap="round"/>
     </g>`;
@@ -177,7 +181,7 @@ function renderTopAvatar({ options, x, y, size, idBase }) {
   if (options.avatarEmoji) {
     const emojiFontSize = Math.round(size * 0.46);
     return `<g>
-      <circle cx="${cx}" cy="${cy}" r="${r}" fill="#ffffff" stroke="${stroke}" stroke-width="2"/>
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="#ffffff"/>
       <text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="central" font-family="${FONT_STACK}" font-size="${emojiFontSize}">${escapeXml(
       options.avatarEmoji
     )}</text>
@@ -227,7 +231,7 @@ function renderTemplateV3(options) {
   const overlay = buildTextureOverlay(options, idBase);
 
   const outerPadding = Math.round(96 * scale);
-  const avatarSize = Math.round(168 * scale);
+  const avatarSize = resolveScaledAvatarSize(options, scale, 0.5, 92, 172);
   const avatarX = outerPadding;
   const avatarY = outerPadding;
 

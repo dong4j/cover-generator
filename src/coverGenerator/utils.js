@@ -51,11 +51,31 @@ function randomChoice(list, rng) {
   return list[Math.floor(rng() * list.length)];
 }
 
+function resolveAvatarSizeV2Rule(options, scale) {
+  const outerPadding = Math.round(70 * scale);
+  const cardW = Math.round(options.width * 0.64);
+  const cardX = options.width - outerPadding - cardW;
+  const leftAreaW = Math.max(outerPadding, cardX - outerPadding);
+  const preferredSize = Math.round(Math.min(leftAreaW * 0.62, options.height * 0.42));
+  return clamp(preferredSize, Math.round(170 * scale), Math.round(340 * scale));
+}
+
+function resolveScaledAvatarSize(options, scale, ratio, minSize, maxSize) {
+  const base = resolveAvatarSizeV2Rule(options, scale);
+  return clamp(
+    Math.round(base * ratio),
+    Math.round(minSize * scale),
+    Math.round(maxSize * scale)
+  );
+}
+
 module.exports = {
   clamp,
   createRng,
   hashSeed,
   normalizeSeed,
   randomChoice,
+  resolveScaledAvatarSize,
+  resolveAvatarSizeV2Rule,
   rngInt
 };

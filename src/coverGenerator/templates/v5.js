@@ -6,7 +6,12 @@
 const { renderAvatar } = require("../shapeEngine");
 const { escapeXml, wrapLines } = require("../typographyEngine");
 const { buildTextureOverlay } = require("../overlayEngine");
-const { createRng, normalizeSeed, randomChoice } = require("../utils");
+const {
+  createRng,
+  normalizeSeed,
+  randomChoice,
+  resolveScaledAvatarSize
+} = require("../utils");
 
 const FONT_STACK =
   "Inter, 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif";
@@ -253,7 +258,7 @@ function renderTemplateV5(options) {
 
   const titleMaxWidth = Math.round(options.width * 0.74);
 
-  const iconSize = Math.round(150 * scale);
+  const iconSize = resolveScaledAvatarSize(options, scale, 0.5, 96, 168);
   const groupGap = Math.round(40 * scale);
 
   const subtitleFontSize = Math.round(36 * scale);
@@ -281,9 +286,9 @@ function renderTemplateV5(options) {
     availableTitleBlockHeight - (subtitleLayout ? subtitleHeight + subtitleGap : 0)
   );
 
-  const titleFontSize = Math.round(84 * scale);
-  const titleLineHeight = Math.round(102 * scale);
-  const titleMinFontSize = Math.round(56 * scale);
+  const titleFontSize = Math.round(92 * scale);
+  const titleLineHeight = Math.round(112 * scale);
+  const titleMinFontSize = Math.round(60 * scale);
 
   const fittedTitle = wrapAndFitText({
     text: options.title,

@@ -5,7 +5,12 @@
 
 const { escapeXml, wrapLines } = require("../typographyEngine");
 const { buildTextureOverlay } = require("../overlayEngine");
-const { createRng, normalizeSeed, randomChoice } = require("../utils");
+const {
+  createRng,
+  normalizeSeed,
+  randomChoice,
+  resolveScaledAvatarSize
+} = require("../utils");
 
 const FONT_STACK =
   "Inter, 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif";
@@ -228,27 +233,29 @@ function renderTemplateV7(options) {
       : "";
   const overlay = buildTextureOverlay(options, idBase);
 
-  const iconSize = Math.round(120 * scale);
-  const gap = Math.round(30 * scale);
-  const maxTextWidth = Math.round(options.width * 0.5);
-  const groupWidth = iconSize + gap + maxTextWidth;
-  const groupX = Math.round((options.width - groupWidth) / 2);
-  const iconX = groupX;
+  const contentPaddingX = Math.round(options.width * 0.08);
+  const contentPaddingY = Math.round(options.height * 0.12);
+  const iconSize = resolveScaledAvatarSize(options, scale, 0.5, 96, 168);
+  const iconColumnWidth = Math.round(Math.max(iconSize * 1.9, 210 * scale));
+  const gap = Math.round(38 * scale);
+  const iconX = Math.round(contentPaddingX + (iconColumnWidth - iconSize) / 2);
+  const textX = Math.round(contentPaddingX + iconColumnWidth + gap);
+  const maxTextWidth = Math.max(1, options.width - contentPaddingX - textX);
 
-  const titleFontSize = Math.round(54 * scale);
-  const titleLineHeight = Math.round(66 * scale);
-  const titleMinFontSize = Math.round(40 * scale);
+  const titleFontSize = Math.round(90 * scale);
+  const titleLineHeight = Math.round(106 * scale);
+  const titleMinFontSize = Math.round(56 * scale);
 
-  const subtitleFontSize = Math.round(30 * scale);
-  const subtitleLineHeight = Math.round(42 * scale);
-  const subtitleMinFontSize = Math.round(22 * scale);
-  const subtitleGap = options.subtitle ? Math.round(16 * scale) : 0;
+  const subtitleFontSize = Math.round(34 * scale);
+  const subtitleLineHeight = Math.round(46 * scale);
+  const subtitleMinFontSize = Math.round(24 * scale);
+  const subtitleGap = options.subtitle ? Math.round(18 * scale) : 0;
 
   const subtitleLayout = options.subtitle
     ? wrapAndFitText({
         text: options.subtitle,
         maxWidth: maxTextWidth,
-        maxHeight: Math.round(140 * scale),
+        maxHeight: Math.round(160 * scale),
         fontSize: subtitleFontSize,
         lineHeight: subtitleLineHeight,
         minFontSize: subtitleMinFontSize,
@@ -256,8 +263,23 @@ function renderTemplateV7(options) {
       })
     : null;
 
+  const authorText = String(options.author || "").trim();
+  const authorGap = authorText ? Math.round(16 * scale) : 0;
+  const authorLayout = authorText
+    ? wrapAndFitText({
+        text: authorText,
+        maxWidth: Math.round(iconColumnWidth * 1.12),
+        maxHeight: Math.round(74 * scale),
+        fontSize: Math.round(24 * scale),
+        lineHeight: Math.round(30 * scale),
+        minFontSize: Math.round(16 * scale),
+        wrap: wrapLinesV7
+      })
+    : null;
+
   const subtitleHeight = subtitleLayout ? subtitleLayout.lines.length * subtitleLayout.lineHeight : 0;
-  const availableTitleHeight = Math.round(options.height * 0.3);
+  const authorHeight = authorLayout ? authorLayout.lines.length * authorLayout.lineHeight : 0;
+  const availableTitleHeight = Math.round(options.height * 0.46);
 
   const fittedTitle = wrapAndFitText({
     text: options.title,
@@ -270,12 +292,15 @@ function renderTemplateV7(options) {
   });
 
   const titleHeight = fittedTitle.lines.length * fittedTitle.lineHeight;
-  const textBlockHeight =
-    titleHeight + (subtitleLayout ? subtitleGap + subtitleHeight : 0);
-  const groupHeight = Math.max(iconSize, textBlockHeight);
-  const groupY = Math.round((options.height - groupHeight) / 2);
-  const iconY = Math.round(groupY + (groupHeight - iconSize) / 2);
-  const textX = Math.round(iconX + iconSize + gap);
+  const textBlockHeight = titleHeight + (subtitleLayout ? subtitleGap + subtitleHeight : 0);
+  const leftBlockHeight = iconSize + (authorLayout ? authorGap + authorHeight : 0);
+  const groupHeight = Math.max(leftBlockHeight, textBlockHeight);
+  const centeredGroupY = Math.round((options.height - groupHeight) / 2);
+  const groupY = Math.max(
+    contentPaddingY,
+    Math.min(centeredGroupY, options.height - contentPaddingY - groupHeight)
+  );
+  const iconY = Math.round(groupY + (groupHeight - leftBlockHeight) / 2);
   const titleTop = Math.round(groupY + (groupHeight - textBlockHeight) / 2);
 
   const iconSvg = renderIcon({
@@ -311,6 +336,21 @@ function renderTemplateV7(options) {
       })()
     : "";
 
+  const authorCenterX = Math.round(iconX + iconSize / 2);
+  const authorSvg = authorLayout
+    ? (() => {
+        const authorY = Math.round(iconY + iconSize + authorGap);
+        return `<text x="${authorCenterX}" y="${authorY}" fill="rgba(124,45,18,0.58)" font-family="${FONT_STACK}" font-size="${authorLayout.fontSize}" font-weight="600" text-anchor="middle" dominant-baseline="hanging">
+          ${authorLayout.lines
+            .map((line, index) => {
+              const dy = index === 0 ? 0 : authorLayout.lineHeight;
+              return `<tspan x="${authorCenterX}" dy="${dy}">${escapeXml(line)}</tspan>`;
+            })
+            .join("")}
+        </text>`;
+      })()
+    : "";
+
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="${options.width}" height="${options.height}" viewBox="0 0 ${options.width} ${options.height}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Blog cover for ${escapeXml(
     options.title
@@ -322,6 +362,7 @@ function renderTemplateV7(options) {
   <rect width="100%" height="100%" fill="${backgroundFill}"/>
   ${overlay.layer}
   ${iconSvg}
+  ${authorSvg}
   ${titleSvg}
   ${subtitleSvg}
 </svg>`;

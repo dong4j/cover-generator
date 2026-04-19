@@ -6,6 +6,7 @@
 // - Delegates SVG rendering to exporter.js (template implementation)
 
 const { generateSVG } = require("./exporter");
+const { inlineAvatarInOptions } = require("./avatarEmbedder");
 const { DEFAULT_AUTHOR, DEFAULT_AVATAR_URLS } = require("../config");
 const { clamp, createRng, normalizeSeed, randomChoice } = require("./utils");
 
@@ -67,6 +68,12 @@ function buildCoverOptions(query, body, templateFromPath) {
 function generateCoverSvg(query, body, templateFromPath) {
   const options = buildCoverOptions(query, body, templateFromPath);
   return generateSVG(options);
+}
+
+async function generateCoverSvgAsync(query, body, templateFromPath, deps = {}) {
+  const options = buildCoverOptions(query, body, templateFromPath);
+  const resolvedOptions = await inlineAvatarInOptions(options, deps);
+  return generateSVG(resolvedOptions);
 }
 
 function buildRandomCoverOptions(query, body) {
@@ -131,11 +138,19 @@ function generateRandomCoverSvg(query, body) {
   return generateSVG(options);
 }
 
+async function generateRandomCoverSvgAsync(query, body, deps = {}) {
+  const options = buildRandomCoverOptions(query, body);
+  const resolvedOptions = await inlineAvatarInOptions(options, deps);
+  return generateSVG(resolvedOptions);
+}
+
 module.exports = {
   buildCoverOptions,
   buildRandomCoverOptions,
   defaultOptions,
   generateCoverSvg,
+  generateCoverSvgAsync,
   generateRandomCoverSvg,
+  generateRandomCoverSvgAsync,
   parseOptions
 };

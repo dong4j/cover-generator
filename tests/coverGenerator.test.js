@@ -3,7 +3,11 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { buildRandomCoverOptions, generateCoverSvg } = require("../src/coverGenerator");
+const {
+  buildRandomCoverOptions,
+  generateCoverSvg,
+  generateCoverSvgAsync
+} = require("../src/coverGenerator");
 const { DEFAULT_AUTHOR, DEFAULT_AVATAR_URLS } = require("../src/config");
 
 test("generateCoverSvg returns svg", () => {
@@ -14,6 +18,33 @@ test("generateCoverSvg returns svg", () => {
   );
   assert.match(svg, /^<\?xml\b/);
   assert.match(svg, /<svg\b/);
+});
+
+test("generateCoverSvgAsync supports avatar embedding pipeline", async () => {
+  const svg = await generateCoverSvgAsync(
+    {
+      title: "Async Avatar",
+      author: "A",
+      seed: "2",
+      avatarUrl: "https://cdn.example.com/avatar.webp"
+    },
+    {},
+    "v2",
+    {
+      dnsLookup: async () => [{ address: "93.184.216.34" }],
+      fetchImpl: async () => ({
+        ok: true,
+        headers: {
+          get(name) {
+            if (String(name).toLowerCase() === "content-type") return "image/webp";
+            return "";
+          }
+        },
+        arrayBuffer: async () => Uint8Array.from([7, 8, 9]).buffer
+      })
+    }
+  );
+  assert.match(svg, /data:image\/webp;base64,/);
 });
 
 test("same seed produces deterministic output", () => {
@@ -44,6 +75,65 @@ test("avatarEmoji has priority over avatarUrl", () => {
   );
   assert.match(svg, /👋/);
   assert.doesNotMatch(svg, /<image\b/i);
+});
+
+test("avatar image has no border stroke", () => {
+  const svg = generateCoverSvg(
+    {
+      title: "Avatar No Border",
+      author: "A",
+      seed: 200,
+      avatarUrl: "https://example.com/a.png"
+    },
+    {},
+    "v2"
+  );
+  assert.match(svg, /<image\b/i);
+  assert.doesNotMatch(svg, /fill="none"\s+stroke="[^"]+"\s+stroke-width="6"/i);
+});
+
+test("v1 avatar keeps compact footer size", () => {
+  const svg = generateCoverSvg(
+    {
+      title: "V1 Avatar Size",
+      author: "A",
+      seed: 201,
+      avatarUrl: "https://example.com/a.png",
+      width: 1200,
+      height: 630
+    },
+    {},
+    "v1"
+  );
+  const match = svg.match(/<image[^>]*href="https:\/\/example\.com\/a\.png"[^>]*width="(\d+)"/i);
+  assert.ok(match, "v1 should render avatar image");
+  const avatarSize = Number(match[1]);
+  assert.ok(Number.isFinite(avatarSize));
+  assert.ok(avatarSize <= 104, `expected compact v1 avatar, got ${avatarSize}`);
+});
+
+test("non-v2 templates keep avatar smaller than v2", () => {
+  const basePayload = {
+    title: "Avatar Scale",
+    subtitle: "subtitle",
+    author: "A",
+    seed: 202,
+    avatarUrl: "https://example.com/a.png",
+    width: 1200,
+    height: 630
+  };
+  const sizeOf = (template) => {
+    const svg = generateCoverSvg(basePayload, {}, template);
+    const match = svg.match(/<image[^>]*href="https:\/\/example\.com\/a\.png"[^>]*width="(\d+)"/i);
+    assert.ok(match, `${template} should render avatar image`);
+    return Number(match[1]);
+  };
+
+  const v2Size = sizeOf("v2");
+  for (const template of ["v1", "v3", "v4", "v5", "v6", "v7"]) {
+    const size = sizeOf(template);
+    assert.ok(size < v2Size, `${template} avatar should be smaller than v2 (${size} !< ${v2Size})`);
+  }
 });
 
 test("accent controls card fill", () => {
@@ -96,6 +186,17 @@ test("v2 without color uses gradient background", () => {
   );
   assert.match(svg, /<linearGradient\b/);
   assert.match(svg, /fill="url\(#cover-v2-[0-9a-f]+-bgGradient\)"/i);
+});
+
+test("v2 renders author below avatar area", () => {
+  const svg = generateCoverSvg(
+    { title: "V2 Author", author: "@left-author", seed: 13 },
+    {},
+    "v2"
+  );
+  assert.match(svg, /text-anchor="middle"\s+dominant-baseline="hanging">/);
+  assert.match(svg, /@left-author/);
+  assert.doesNotMatch(svg, /dominant-baseline="alphabetic">[^<]*@left-author/);
 });
 
 test("v3 template returns svg", () => {
@@ -214,6 +315,16 @@ test("v7 supports texture overlays", () => {
     "v7"
   );
   assert.match(svg, /-texture-grid/);
+});
+
+test("v7 renders author near avatar", () => {
+  const svg = generateCoverSvg(
+    { title: "V7 Author", author: "@dong4j", seed: 73 },
+    {},
+    "v7"
+  );
+  assert.match(svg, /@dong4j/);
+  assert.match(svg, /text-anchor="middle"/);
 });
 
 test("random cover uses fixed author and allowed assets", () => {
