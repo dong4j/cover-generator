@@ -228,8 +228,8 @@ function renderTemplateV4(options) {
   const subtitleMinFontSize = Math.round(24 * scale);
   const subtitleGap = options.subtitle ? Math.round(24 * scale) : 0;
 
-  const authorFontSize = Math.round(30 * scale);
-  const authorLineHeight = Math.round(36 * scale);
+  const authorFontSize = Math.round(56 * scale);
+  const authorLineHeight = Math.round(authorFontSize * 1.2);
   const authorGap = Math.round(26 * scale);
   const bottomPadding = Math.round(80 * scale);
 

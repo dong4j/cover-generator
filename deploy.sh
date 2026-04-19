@@ -19,11 +19,8 @@ if [ ! -d "$LOCAL_DIR" ]; then
   exit 1
 fi
 
-backup_dir="${REMOTE_DIR}_backup_$(date +%Y%m%d%H%M%S)"
-echo "Creating backup of remote directory: $REMOTE_DIR"
-ssh "$SSH_ALIAS" "rsync -av --exclude \"node_modules/\" \"$REMOTE_DIR/\" \"$backup_dir\" && echo 'Backup created at $backup_dir' || echo 'Backup failed.'"
-
-rsync -avz --progress \
+# 本地目录为权威来源：与远端对齐，本地已删除的文件在远端也会删除（不备份远端）。
+rsync -avz --progress --delete \
   --exclude '.DS_Store' \
   --exclude '._*' \
   --exclude '__MACOSX' \

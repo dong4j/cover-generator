@@ -1,6 +1,13 @@
 "use strict";
 
 let cachedResvgCtor = null;
+let hasLoggedMissingResvg = false;
+const RESVG_INSTALL_HINT = [
+  "PNG renderer is unavailable because dependency '@resvg/resvg-js' is missing.",
+  "Install it with one of the following commands:",
+  "  npm install @resvg/resvg-js --save",
+  "  pnpm add @resvg/resvg-js"
+].join("\n");
 
 function normalizePngOutput(output) {
   if (!output) throw new Error("PNG renderer returned empty result");
@@ -19,7 +26,12 @@ function loadResvgCtor(deps = {}) {
     cachedResvgCtor = Resvg;
     return cachedResvgCtor;
   } catch {
-    throw new Error("PNG renderer is unavailable. Please install @resvg/resvg-js.");
+    if (!hasLoggedMissingResvg) {
+      hasLoggedMissingResvg = true;
+      // eslint-disable-next-line no-console
+      console.error(RESVG_INSTALL_HINT);
+    }
+    throw new Error(RESVG_INSTALL_HINT);
   }
 }
 

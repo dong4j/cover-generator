@@ -2,6 +2,7 @@
 
 const dns = require("node:dns/promises");
 const net = require("node:net");
+const { createRng, normalizeSeed } = require("./utils");
 
 const AVATAR_FETCH_TIMEOUT_MS = parsePositiveInt(process.env.AVATAR_FETCH_TIMEOUT_MS, 2500);
 const AVATAR_FETCH_MAX_BYTES = parsePositiveInt(process.env.AVATAR_FETCH_MAX_BYTES, 1024 * 1024);
@@ -33,6 +34,7 @@ const EXTENSION_TO_MIME = {
   ".avif": "image/avif",
   ".bmp": "image/bmp"
 };
+const FALLBACK_AVATAR_EMOJIS = ["😎", "🚀", "✨", "🔥", "🧠", "🎯", "🌟", "💡", "🧩", "😄"];
 
 const avatarDataCache = new Map();
 const hostSafetyCache = new Map();
@@ -371,9 +373,23 @@ async function fetchAvatarAsDataUri(avatarUrl, deps = {}) {
 
 async function inlineAvatarInOptions(options, deps = {}) {
   if (!options || !options.avatarUrl || options.avatarEmoji) return options;
+  if (String(options.avatarUrl).startsWith("data:")) return options;
   const embedded = await fetchAvatarAsDataUri(options.avatarUrl, deps);
-  if (!embedded) return options;
+  if (!embedded) {
+    const fallbackEmoji = pickFallbackAvatarEmoji(options, deps);
+    return { ...options, avatarUrl: "", avatarEmoji: fallbackEmoji };
+  }
   return { ...options, avatarUrl: embedded };
+}
+
+function pickFallbackAvatarEmoji(options, deps = {}) {
+  const customList = Array.isArray(deps.fallbackAvatarEmojis) ? deps.fallbackAvatarEmojis : null;
+  const candidates = customList && customList.length ? customList : FALLBACK_AVATAR_EMOJIS;
+  const fallbackKey = `${options.title || ""}-${options.author || ""}-${options.avatarUrl || ""}`;
+  const seed = normalizeSeed(options.seed, fallbackKey);
+  const rng = createRng(seed);
+  const index = Math.floor(rng() * candidates.length);
+  return String(candidates[index] || "😄").slice(0, 6);
 }
 
 function clearAvatarEmbedCaches() {

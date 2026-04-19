@@ -10,6 +10,8 @@ const { inlineAvatarInOptions } = require("./avatarEmbedder");
 const { renderSvgToPng } = require("./pngRenderer");
 const { DEFAULT_AUTHOR, DEFAULT_AVATAR_URLS } = require("../config");
 const { clamp, createRng, normalizeSeed, randomChoice } = require("./utils");
+const RANDOM_BACKGROUNDS = ["solid", "gradient"];
+const RANDOM_TEXTURES = ["", "grid", "graph", "dots", "circuit"];
 
 const defaultOptions = {
   title: "Untitled Blog Post",
@@ -24,7 +26,8 @@ const defaultOptions = {
   color: undefined,
   accent: undefined,
   avatarUrl: "",
-  avatarEmoji: ""
+  avatarEmoji: "",
+  randomize: false
 };
 
 function parseOptions(query, body) {
@@ -43,6 +46,7 @@ function parseOptions(query, body) {
   if (payload.background) options.background = String(payload.background);
   if (payload.texture) options.texture = String(payload.texture);
   if (payload.seed !== undefined) options.seed = payload.seed;
+  if (payload.randomize !== undefined) options.randomize = isTruthyFlag(payload.randomize);
 
   const width = parseInt(payload.width, 10);
   const height = parseInt(payload.height, 10);
@@ -52,17 +56,58 @@ function parseOptions(query, body) {
   return options;
 }
 
+function hasMeaningfulPayloadValue(payload, key) {
+  if (!Object.prototype.hasOwnProperty.call(payload, key)) return false;
+  const value = payload[key];
+  if (value === undefined || value === null) return false;
+  return String(value).trim().length > 0;
+}
+
+function isTruthyFlag(value) {
+  const normalized = String(value).trim().toLowerCase();
+  return ["1", "true", "yes", "y", "on"].includes(normalized);
+}
+
+function applyRandomizeCoverOptions(options, payload) {
+  if (!isTruthyFlag(payload.randomize)) return options;
+
+  const runtimeSeedInput = `${Date.now()}-${Math.random()}`;
+  options.seed = normalizeSeed(
+    runtimeSeedInput,
+    `${options.title}-${options.author}-${options.template}-randomize`
+  );
+  options.randomize = true;
+
+  const rng = createRng(options.seed);
+  const hasBackground = hasMeaningfulPayloadValue(payload, "background");
+  const normalizedBackground = hasBackground ? String(payload.background).trim().toLowerCase() : "";
+
+  if (!hasBackground || normalizedBackground === "auto") {
+    options.background = randomChoice(RANDOM_BACKGROUNDS, rng);
+  }
+
+  if (!hasMeaningfulPayloadValue(payload, "texture")) {
+    options.texture = randomChoice(RANDOM_TEXTURES, rng);
+  }
+
+  return options;
+}
+
 function buildCoverOptions(query, body, templateFromPath) {
+  const payload = { ...query, ...(body || {}) };
   const options = parseOptions(query, body);
   if (templateFromPath) options.template = templateFromPath;
 
   const allowedTemplates = new Set(["v1", "v2", "v3", "v4", "v5", "v6", "v7"]);
   if (!allowedTemplates.has(options.template)) options.template = "v1";
 
-  options.seed = normalizeSeed(
-    options.seed,
-    `${options.title}-${options.author}-${options.template}`
-  );
+  applyRandomizeCoverOptions(options, payload);
+  if (!options.randomize) {
+    options.seed = normalizeSeed(
+      options.seed,
+      `${options.title}-${options.author}-${options.template}`
+    );
+  }
   return options;
 }
 

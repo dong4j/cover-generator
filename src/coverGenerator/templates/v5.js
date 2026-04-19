@@ -244,7 +244,7 @@ function renderTemplateV5(options) {
       : buildMicroGridOverlay(idBase);
 
   const centerX = Math.round(options.width / 2);
-  const badgeFontSize = Math.round(28 * scale);
+  const badgeFontSize = Math.round(56 * scale);
   const badgePaddingX = Math.round(30 * scale);
   const badgePaddingY = Math.round(10 * scale);
   const badgeHeight = Math.round(badgeFontSize + badgePaddingY * 2);

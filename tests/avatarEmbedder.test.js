@@ -45,13 +45,15 @@ test("inlineAvatarInOptions blocks private target addresses", async () => {
   };
 
   const result = await inlineAvatarInOptions(options, {
+    fallbackAvatarEmojis: ["🧪"],
     fetchImpl: async () => {
       fetchCalls += 1;
       return null;
     }
   });
 
-  assert.equal(result.avatarUrl, options.avatarUrl);
+  assert.equal(result.avatarUrl, "");
+  assert.equal(result.avatarEmoji, "🧪");
   assert.equal(fetchCalls, 0);
 });
 
@@ -198,7 +200,7 @@ test("inlineAvatarInOptions infers png mime from bytes for png target", async ()
   assert.match(result.avatarUrl, /^data:image\/png;base64,/);
 });
 
-test("inlineAvatarInOptions keeps original avatar when png target only gets unsupported mime", async () => {
+test("inlineAvatarInOptions falls back to emoji when png target only gets unsupported mime", async () => {
   clearAvatarEmbedCaches();
   const options = {
     title: "T",
@@ -209,6 +211,7 @@ test("inlineAvatarInOptions keeps original avatar when png target only gets unsu
 
   const result = await inlineAvatarInOptions(options, {
     targetFormat: "png",
+    fallbackAvatarEmojis: ["🧯"],
     dnsLookup: async () => [{ address: "93.184.216.34" }],
     fetchImpl: async () => ({
       ok: true,
@@ -219,5 +222,50 @@ test("inlineAvatarInOptions keeps original avatar when png target only gets unsu
     })
   });
 
+  assert.equal(result.avatarUrl, "");
+  assert.equal(result.avatarEmoji, "🧯");
+});
+
+test("inlineAvatarInOptions fallback emoji is deterministic for same seed", async () => {
+  clearAvatarEmbedCaches();
+  const options = {
+    title: "T",
+    author: "A",
+    seed: 2026,
+    avatarUrl: "https://cdn.example.com/avatar.webp",
+    avatarEmoji: ""
+  };
+
+  const deps = {
+    fallbackAvatarEmojis: ["😀", "😎", "🚀"],
+    dnsLookup: async () => [{ address: "93.184.216.34" }],
+    fetchImpl: async () => ({
+      ok: false,
+      headers: { get: () => "" },
+      arrayBuffer: async () => new Uint8Array().buffer
+    })
+  };
+
+  const first = await inlineAvatarInOptions(options, deps);
+  const second = await inlineAvatarInOptions(options, deps);
+  assert.equal(first.avatarUrl, "");
+  assert.equal(second.avatarUrl, "");
+  assert.equal(first.avatarEmoji, second.avatarEmoji);
+});
+
+test("inlineAvatarInOptions keeps existing data-uri avatar", async () => {
+  clearAvatarEmbedCaches();
+  const options = {
+    title: "T",
+    author: "A",
+    avatarUrl: "data:image/png;base64,AAEC",
+    avatarEmoji: ""
+  };
+
+  const result = await inlineAvatarInOptions(options, {
+    fallbackAvatarEmojis: ["🧪"]
+  });
+
   assert.equal(result.avatarUrl, options.avatarUrl);
+  assert.equal(result.avatarEmoji, "");
 });

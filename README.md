@@ -56,7 +56,8 @@ npm test
 | `title` | string | `Untitled Blog Post` | 标题，建议必填；服务端会裁剪长度并动态换行/缩放避免溢出。 |
 | `subtitle` | string | empty | 副标题/摘要，可选。 |
 | `author` | string | `Anonymous` | 作者占位符，可传任意字符串（如 `@dong4j`）。 |
-| `seed` | number/string | hash(title+author+template) | 控制可复现随机；同 seed+输入 输出一致。 |
+| `seed` | number/string | hash(title+author+template) | 控制可复现随机；同 seed+输入 输出一致（`randomize=1` 时会被忽略）。 |
+| `randomize` | bool-like | `false` | 传 `1/true/on/yes` 可开启“同参数每次不同”；会为当前请求生成临时 seed。 |
 | `width` | number | 1200 | 300–4000。 |
 | `height` | number | 630 | 300–4000。 |
 | `background` | string | `auto` | `auto` \| `solid` \| `gradient`。`auto` 会在暖色系纯色/渐变中随机选择。 |
@@ -65,6 +66,10 @@ npm test
 | `accent` | string | light auto | 卡片底色；不传则随机浅色。 |
 | `avatarEmoji` | string | empty | 单个 emoji；优先于 `avatarUrl`。 |
 | `avatarUrl` | string | empty | 头像 URL；服务端会尝试下载并内嵌到 SVG（失败时回退为外链引用）。 |
+
+随机模式建议：
+- 保留 `title/author/avatarUrl/randomize=1`
+- 若希望颜色/背景/纹理都随机：不要传 `seed/color/accent/texture`，并让 `background` 留空或传 `auto`
 
 ## 随机封面（/cover/random）
 

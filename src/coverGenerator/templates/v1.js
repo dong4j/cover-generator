@@ -299,8 +299,8 @@ function renderTemplateV1(options) {
   const lineHeight = Math.round(110 * scale);
   const subtitleFontSize = Math.round(44 * scale) + fontBump;
   const authorFontSize = Math.round(52 * scale) + fontBump;
-  // v1 avatar lives in the footer; keep it compact so title remains dominant.
-  const avatarSize = resolveScaledAvatarSize(options, scale, 0.32, 64, 104);
+  // Align v1 footer avatar size rule with v7 for cross-template consistency.
+  const avatarSize = resolveScaledAvatarSize(options, scale, 0.5, 96, 168);
 
   const availableTextWidth = cardW - cardPadding * 2;
   const subtitleGap = options.subtitle ? Math.round(26 * scale) : 0;

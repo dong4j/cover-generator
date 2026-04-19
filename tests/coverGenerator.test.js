@@ -4,6 +4,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const {
+  buildCoverOptions,
   buildRandomCoverOptions,
   generateCoverPngAsync,
   generateCoverSvg,
@@ -19,6 +20,53 @@ test("generateCoverSvg returns svg", () => {
   );
   assert.match(svg, /^<\?xml\b/);
   assert.match(svg, /<svg\b/);
+});
+
+test("buildCoverOptions randomize=1 overrides seed and randomizes defaults", () => {
+  const base = buildCoverOptions(
+    {
+      title: "Random Seed Baseline",
+      author: "@dong4j",
+      seed: "fixed-seed",
+      background: "auto",
+      randomize: "0"
+    },
+    {},
+    "v2"
+  );
+
+  const randomized = buildCoverOptions(
+    {
+      title: "Random Seed Baseline",
+      author: "@dong4j",
+      seed: "fixed-seed",
+      background: "auto",
+      randomize: "1"
+    },
+    {},
+    "v2"
+  );
+
+  assert.notEqual(randomized.seed, base.seed);
+  assert.ok(["solid", "gradient"].includes(randomized.background));
+  assert.ok(["", "grid", "graph", "dots", "circuit"].includes(randomized.texture));
+});
+
+test("buildCoverOptions randomize=1 keeps explicit background and texture", () => {
+  const randomized = buildCoverOptions(
+    {
+      title: "Random Fixed Fields",
+      author: "@dong4j",
+      randomize: "1",
+      background: "solid",
+      texture: "graph"
+    },
+    {},
+    "v7"
+  );
+
+  assert.equal(randomized.background, "solid");
+  assert.equal(randomized.texture, "graph");
 });
 
 test("generateCoverSvgAsync supports avatar embedding pipeline", async () => {
@@ -123,8 +171,38 @@ test("avatar image has no border stroke", () => {
   assert.doesNotMatch(svg, /fill="none"\s+stroke="[^"]+"\s+stroke-width="6"/i);
 });
 
-test("v1 avatar keeps compact footer size", () => {
+test("v1 avatar uses same size as v7", () => {
+  const payload = {
+    title: "V1 Avatar Size",
+    author: "A",
+    seed: 201,
+    avatarUrl: "https://example.com/a.png",
+    width: 1200,
+    height: 630
+  };
   const svg = generateCoverSvg(
+    payload,
+    {},
+    "v1"
+  );
+  const svgV7 = generateCoverSvg(
+    payload,
+    {},
+    "v7"
+  );
+  const match = svg.match(/<image[^>]*href="https:\/\/example\.com\/a\.png"[^>]*width="(\d+)"/i);
+  const matchV7 = svgV7.match(/<image[^>]*href="https:\/\/example\.com\/a\.png"[^>]*width="(\d+)"/i);
+  assert.ok(match, "v1 should render avatar image");
+  assert.ok(matchV7, "v7 should render avatar image");
+  const avatarSize = Number(match[1]);
+  const avatarSizeV7 = Number(matchV7[1]);
+  assert.ok(Number.isFinite(avatarSize));
+  assert.ok(Number.isFinite(avatarSizeV7));
+  assert.equal(avatarSize, avatarSizeV7, `expected v1 avatar size to match v7 (${avatarSize} !== ${avatarSizeV7})`);
+});
+
+test("v1 avatar remains smaller than v2", () => {
+  const v1 = generateCoverSvg(
     {
       title: "V1 Avatar Size",
       author: "A",
@@ -136,11 +214,23 @@ test("v1 avatar keeps compact footer size", () => {
     {},
     "v1"
   );
-  const match = svg.match(/<image[^>]*href="https:\/\/example\.com\/a\.png"[^>]*width="(\d+)"/i);
-  assert.ok(match, "v1 should render avatar image");
-  const avatarSize = Number(match[1]);
-  assert.ok(Number.isFinite(avatarSize));
-  assert.ok(avatarSize <= 104, `expected compact v1 avatar, got ${avatarSize}`);
+  const v2 = generateCoverSvg(
+    {
+      title: "V1 Avatar Size",
+      author: "A",
+      seed: 201,
+      avatarUrl: "https://example.com/a.png",
+      width: 1200,
+      height: 630
+    },
+    {},
+    "v2"
+  );
+  const matchV1 = v1.match(/<image[^>]*href="https:\/\/example\.com\/a\.png"[^>]*width="(\d+)"/i);
+  const matchV2 = v2.match(/<image[^>]*href="https:\/\/example\.com\/a\.png"[^>]*width="(\d+)"/i);
+  assert.ok(matchV1, "v1 should render avatar image");
+  assert.ok(matchV2, "v2 should render avatar image");
+  assert.ok(Number(matchV1[1]) < Number(matchV2[1]));
 });
 
 test("non-v2 templates keep avatar smaller than v2", () => {

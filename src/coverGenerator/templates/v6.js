@@ -250,8 +250,8 @@ function renderTemplateV6(options) {
   const subtitleMaxWidth = Math.round(options.width * 0.62);
   const subtitleGap = options.subtitle ? gap : 0;
 
-  const authorFontSize = Math.round(26 * scale);
-  const authorLineHeight = Math.round(32 * scale);
+  const authorFontSize = Math.round(56 * scale);
+  const authorLineHeight = Math.round(authorFontSize * 1.2);
   const authorGap = options.author ? gap : 0;
 
   const subtitleLayout = options.subtitle

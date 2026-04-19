@@ -271,9 +271,9 @@ function renderTemplateV7(options) {
     ? wrapAndFitText({
         text: authorText,
         maxWidth: Math.round(iconColumnWidth * 1.12),
-        maxHeight: Math.round(74 * scale),
-        fontSize: Math.round(24 * scale),
-        lineHeight: Math.round(30 * scale),
+        maxHeight: Math.round(170 * scale),
+        fontSize: Math.round(56 * scale),
+        lineHeight: Math.round(67 * scale),
         minFontSize: Math.round(16 * scale),
         wrap: wrapLinesV7
       })
