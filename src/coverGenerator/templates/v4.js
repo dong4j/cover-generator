@@ -3,6 +3,7 @@
 // coverGenerator/templates/v4.js
 // Template v4 implementation: circuit board background + centered emblem + title/subtitle.
 
+const { FONT_STACK } = require("../fontConfig");
 const { renderAvatar } = require("../shapeEngine");
 const { escapeXml, wrapLines } = require("../typographyEngine");
 const { buildTextureOverlay } = require("../overlayEngine");
@@ -12,9 +13,6 @@ const {
   randomChoice,
   resolveScaledAvatarSize
 } = require("../utils");
-
-const FONT_STACK =
-  "Inter, 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif";
 
 const COOL_COLORS = ["#f97316", "#fb7185", "#f59e0b", "#ec4899", "#fb923c", "#fda4af"];
 

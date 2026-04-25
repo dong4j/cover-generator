@@ -4,9 +4,10 @@
 
 [示例](https://blog.dong4j.site/)
 
-![Cursor 2026-04-20 01.07.39](https://cdn.dong4j.site/source/image/Cursor%202026-04-20%2001.07.39.webp)
+![Cover generator preview](./assets/readme-cover.webp)
 
 核心目标：
+
 - 可复现：同样的 `seed + 输入参数` 必定生成一致的封面（方便缓存与构建流程）。
 - 版本化：对外以模板版本（`v1`）作为稳定契约；未来大改动会用新版本号承接。
 - 低依赖：主要逻辑基于 Node.js 核心模块，PNG 渲染使用 `@resvg/resvg-js`。
@@ -53,25 +54,38 @@ npm test
 
 返回类型：`image/svg+xml` 或 `image/png`。
 
+### SVG 与 PNG 选择建议
+
+博客封面建议优先使用 PNG 接口。SVG 接口仍然保留，适合需要矢量输出或继续调试模板的场景，但 SVG 在浏览器、博客主题、系统字体、Web Font 加载方式不同的环境下，可能出现字体渲染差异。尤其是中英文混排标题，直接打开 SVG 和嵌入博客页面时，浏览器命中的字体不一定完全一致。
+
+PNG 接口现在已经做了服务端渲染和缓存优化：首次请求实时生成 PNG，后续同标题请求直接返回缓存文件。这样可以把字体渲染固定在服务端环境中，减少客户端字体差异，也避免每次请求都重新执行 SVG -> PNG 渲染。
+
+PNG 缓存默认目录为 `cache/png`，可通过环境变量 `COVER_PNG_CACHE_DIR` 覆盖。缓存 key 只基于归一化后的 `title`，因此同标题但不同模板、颜色、尺寸、作者的 PNG 请求会复用同一张图片；如需刷新，请删除对应缓存文件或更换标题。`randomize=1` 只会在首次无缓存生成时生效，后续同标题会返回第一次生成的缓存结果。
+
+远程头像也会落盘缓存：首次成功下载并内嵌后保存到 `cache/avatar`，后续同 `avatarUrl + 输出格式` 会直接复用缓存，避免批量生成时反复请求头像源站。可通过 `AVATAR_DISK_CACHE_DIR` 覆盖目录，或用 `DISABLE_AVATAR_DISK_CACHE=1` 关闭。
+
 ## 参数说明（v1）
 
-| Field | Type | Default | Notes |
-| --- | --- | --- | --- |
-| `title` | string | `Untitled Blog Post` | 标题，建议必填；服务端会裁剪长度并动态换行/缩放避免溢出。 |
-| `subtitle` | string | empty | 副标题/摘要，可选。 |
-| `author` | string | `Anonymous` | 作者占位符，可传任意字符串（如 `@dong4j`）。 |
-| `seed` | number/string | hash(title+author+template) | 控制可复现随机；同 seed+输入 输出一致（`randomize=1` 时会被忽略）。 |
-| `randomize` | bool-like | `false` | 传 `1/true/on/yes` 可开启“同参数每次不同”；会为当前请求生成临时 seed。 |
-| `width` | number | 1200 | 300–4000。 |
-| `height` | number | 630 | 300–4000。 |
-| `background` | string | `auto` | `auto` \| `solid` \| `gradient`。`auto` 会在暖色系纯色/渐变中随机选择。 |
-| `texture` | string | empty | 背景纹理叠加：empty \| `grid` \| `graph` \| `dots` \| `circuit`；不传则不叠加。 |
-| `color` | string | warm auto | 背景主色；传了则固定背景为纯色（不走渐变随机）。 |
-| `accent` | string | light auto | 卡片底色；不传则随机浅色。 |
-| `avatarEmoji` | string | empty | 单个 emoji；优先于 `avatarUrl`。 |
-| `avatarUrl` | string | empty | 头像 URL；服务端会尝试下载并内嵌到 SVG（失败时回退为外链引用）。 |
+
+| Field         | Type          | Default                     | Notes                                                        |
+| ------------- | ------------- | --------------------------- | ------------------------------------------------------------ |
+| `title`       | string        | `Untitled Blog Post`        | 标题，建议必填；服务端会裁剪长度并动态换行/缩放避免溢出。                                |
+| `subtitle`    | string        | empty                       | 副标题/摘要，可选。                                                   |
+| `author`      | string        | `Anonymous`                 | 作者占位符，可传任意字符串（如 `@dong4j`）。                                  |
+| `seed`        | number/string | hash(title+author+template) | 控制可复现随机；同 seed+输入 输出一致（`randomize=1` 时会被忽略）。                 |
+| `randomize`   | bool-like     | `false`                     | 传 `1/true/on/yes` 可开启“同参数每次不同”；会为当前请求生成临时 seed。              |
+| `width`       | number        | 1200                        | 300–4000。                                                    |
+| `height`      | number        | 630                         | 300–4000。                                                    |
+| `background`  | string        | `auto`                      | `auto` \| `solid` \| `gradient`。`auto` 会在暖色系纯色/渐变中随机选择。        |
+| `texture`     | string        | empty                       | 背景纹理叠加：empty \| `grid` \| `graph` \| `dots` \| `circuit`；不传则不叠加。 |
+| `color`       | string        | warm auto                   | 背景主色；传了则固定背景为纯色（不走渐变随机）。                                     |
+| `accent`      | string        | light auto                  | 卡片底色；不传则随机浅色。                                                |
+| `avatarEmoji` | string        | empty                       | 单个 emoji；优先于 `avatarUrl`。                                    |
+| `avatarUrl`   | string        | empty                       | 头像 URL；服务端会尝试下载并内嵌到 SVG（失败时回退为外链引用）。                         |
+
 
 随机模式建议：
+
 - 保留 `title/author/avatarUrl/randomize=1`
 - 若希望颜色/背景/纹理都随机：不要传 `seed/color/accent/texture`，并让 `background` 留空或传 `auto`
 
@@ -85,12 +99,14 @@ npm test
 ## v2 说明
 
 `v2` 的输入字段与 `v1` 基本一致（仍然支持 `title/subtitle/author/seed/width/height/background/color/accent/avatarEmoji/avatarUrl`），但布局不同：
+
 - 左侧：大头像（emoji/头像/占位符）
 - 右侧：白色（或浅色）卡片，内含标题/副标题/作者
 
 ## v3 说明
 
 `v3` 的输入字段与 `v1/v2` 一致，布局为：
+
 - 纯色/渐变背景（颜色逻辑同 v1/v2：不传 `color` 时默认随机暖色渐变，可用 `background=solid|gradient|auto` 控制）
 - 左上角头像（emoji/头像/占位符）
 - 大标题（白字、左对齐，自动换行/缩放）
@@ -99,6 +115,7 @@ npm test
 ## v4 说明
 
 `v4` 的输入字段与 `v1/v2/v3` 一致，布局为：
+
 - 冷色系纯色/渐变背景（支持 `background=solid|gradient|auto`，不传 `color` 时默认冷色渐变）
 - 电路板纹理叠加（默认 `circuit`，可用 `texture` 覆盖）
 - 居中图标（优先头像/emoji；否则使用原子图形占位）
@@ -108,6 +125,7 @@ npm test
 ## v5 说明
 
 `v5` 的输入字段与 `v1/v2/v3/v4` 一致，布局为：
+
 - 暖色系纯色/渐变背景（支持 `background=solid|gradient|auto`，不传 `color` 时默认暖色渐变）
 - 细网格纹理（默认内置；若传 `texture` 则使用对应纹理）
 - 顶部胶囊标签（显示 `author`）
@@ -117,6 +135,7 @@ npm test
 ## v6 说明
 
 `v6` 的输入字段与 `v1/v2/v3/v4/v5` 一致，布局为：
+
 - 浅色渐变/纯色背景（默认渐变，可用 `background=solid`）
 - 居中图标（优先头像/emoji；否则使用内置占位图形）
 - 居中标题/副标题与作者
@@ -125,6 +144,7 @@ npm test
 ## v7 说明
 
 `v7` 的输入字段与 `v1/v2/v3/v4/v5/v6` 一致，布局为：
+
 - 粉色系渐变/纯色背景（默认渐变，可用 `background=solid`）
 - 左侧图标（优先头像/emoji；否则使用内置占位图形）
 - 右侧标题/副标题（左对齐）
@@ -324,16 +344,19 @@ curl -X POST "http://localhost:4321/cover/random" \
 ## 模板版本与扩展策略（v1 / 未来 v2 v3 v4 v5 v6 v7）
 
 把版本号当成“对外稳定契约”：
+
 - `v1`：当前这套最满意的卡片风格（暖色背景 + 浅色卡片 + 标题自适应 + 左下角头像 + 右下角作者）。
 - 未来的 `v2`/`v3`/`v4`/`v5`/`v6`/`v7`：当需要“明显不同的版式/视觉体系”且不希望影响历史封面时，再新增版本号。
 
 `v1` 不只是“一个布局”，它包含：
+
 - 布局（标题区域/footer/头像位置）
 - 字体与排版策略（字号、行距、动态换行/缩放）
 - 配色策略（暖色背景、随机渐变、浅色卡片）
 - 可复现策略（seed 如何参与随机）
 
 如何决定“加参数”还是“升版本”：
+
 - 适合加参数：同一视觉体系内的微调（例如 `background` 的选择、卡片圆角强度、阴影强度、对齐方式）。
 - 适合升版本：布局大改、默认风格明显改变、文字策略大改、配色体系大改，或担心影响历史封面一致性。
 

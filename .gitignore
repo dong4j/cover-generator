@@ -34,6 +34,7 @@ out/
 
 # Generated artifacts
 *.svg
+cache/
 
 # PM2
 logs/

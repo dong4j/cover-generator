@@ -2,8 +2,12 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs/promises");
+const os = require("node:os");
+const path = require("node:path");
 
 const {
+  buildAvatarDiskCachePath,
   clearAvatarEmbedCaches,
   inlineAvatarInOptions
 } = require("../src/coverGenerator/avatarEmbedder");
@@ -18,6 +22,7 @@ test("inlineAvatarInOptions embeds remote avatar as data URI", async () => {
   };
 
   const result = await inlineAvatarInOptions(options, {
+    disableAvatarDiskCache: true,
     dnsLookup: async () => [{ address: "93.184.216.34" }],
     fetchImpl: async () => ({
       ok: true,
@@ -45,6 +50,7 @@ test("inlineAvatarInOptions blocks private target addresses", async () => {
   };
 
   const result = await inlineAvatarInOptions(options, {
+    disableAvatarDiskCache: true,
     fallbackAvatarEmojis: ["🧪"],
     fetchImpl: async () => {
       fetchCalls += 1;
@@ -67,6 +73,7 @@ test("inlineAvatarInOptions reuses cached avatar data", async () => {
     avatarEmoji: ""
   };
   const deps = {
+    disableAvatarDiskCache: true,
     dnsLookup: async () => [{ address: "93.184.216.34" }],
     fetchImpl: async () => {
       fetchCalls += 1;
@@ -91,6 +98,50 @@ test("inlineAvatarInOptions reuses cached avatar data", async () => {
   assert.match(first.avatarUrl, /^data:image\/png;base64,/);
 });
 
+test("inlineAvatarInOptions reuses disk cached avatar data after memory cache clears", async () => {
+  clearAvatarEmbedCaches();
+  const avatarCacheDir = await fs.mkdtemp(path.join(os.tmpdir(), "cover-avatar-cache-"));
+  let fetchCalls = 0;
+  const options = {
+    title: "T",
+    author: "A",
+    avatarUrl: "https://cdn.example.com/avatar.png",
+    avatarEmoji: ""
+  };
+  const deps = {
+    avatarCacheDir,
+    dnsLookup: async () => [{ address: "93.184.216.34" }],
+    fetchImpl: async () => {
+      fetchCalls += 1;
+      return {
+        ok: true,
+        headers: {
+          get(name) {
+            if (String(name).toLowerCase() === "content-type") return "image/png";
+            return "";
+          }
+        },
+        arrayBuffer: async () => Uint8Array.from([1, 2, 3]).buffer
+      };
+    }
+  };
+
+  const first = await inlineAvatarInOptions(options, deps);
+  clearAvatarEmbedCaches();
+  const second = await inlineAvatarInOptions(options, {
+    ...deps,
+    fetchImpl: async () => {
+      fetchCalls += 1;
+      throw new Error("should not fetch when disk cache exists");
+    }
+  });
+
+  assert.equal(fetchCalls, 1);
+  assert.equal(first.avatarUrl, second.avatarUrl);
+  assert.match(first.avatarUrl, /^data:image\/png;base64,/);
+  assert.match(await fs.readFile(buildAvatarDiskCachePath(options.avatarUrl, deps), "utf8"), /^data:image\/png;base64,/);
+});
+
 test("inlineAvatarInOptions prefers non-webp for png target", async () => {
   clearAvatarEmbedCaches();
   const options = {
@@ -102,6 +153,7 @@ test("inlineAvatarInOptions prefers non-webp for png target", async () => {
 
   const requests = [];
   const result = await inlineAvatarInOptions(options, {
+    disableAvatarDiskCache: true,
     targetFormat: "png",
     dnsLookup: async () => [{ address: "93.184.216.34" }],
     fetchImpl: async (url) => {
@@ -161,11 +213,13 @@ test("avatar cache key is isolated by target format", async () => {
   };
 
   const svgOut = await inlineAvatarInOptions(options, {
+    disableAvatarDiskCache: true,
     targetFormat: "svg",
     dnsLookup: async () => [{ address: "93.184.216.34" }],
     fetchImpl
   });
   const pngOut = await inlineAvatarInOptions(options, {
+    disableAvatarDiskCache: true,
     targetFormat: "png",
     dnsLookup: async () => [{ address: "93.184.216.34" }],
     fetchImpl
@@ -186,6 +240,7 @@ test("inlineAvatarInOptions infers png mime from bytes for png target", async ()
   };
 
   const result = await inlineAvatarInOptions(options, {
+    disableAvatarDiskCache: true,
     targetFormat: "png",
     dnsLookup: async () => [{ address: "93.184.216.34" }],
     fetchImpl: async () => ({
@@ -210,6 +265,7 @@ test("inlineAvatarInOptions falls back to emoji when png target only gets unsupp
   };
 
   const result = await inlineAvatarInOptions(options, {
+    disableAvatarDiskCache: true,
     targetFormat: "png",
     fallbackAvatarEmojis: ["🧯"],
     dnsLookup: async () => [{ address: "93.184.216.34" }],
@@ -237,6 +293,7 @@ test("inlineAvatarInOptions fallback emoji is deterministic for same seed", asyn
   };
 
   const deps = {
+    disableAvatarDiskCache: true,
     fallbackAvatarEmojis: ["😀", "😎", "🚀"],
     dnsLookup: async () => [{ address: "93.184.216.34" }],
     fetchImpl: async () => ({
@@ -263,6 +320,7 @@ test("inlineAvatarInOptions keeps existing data-uri avatar", async () => {
   };
 
   const result = await inlineAvatarInOptions(options, {
+    disableAvatarDiskCache: true,
     fallbackAvatarEmojis: ["🧪"]
   });
 

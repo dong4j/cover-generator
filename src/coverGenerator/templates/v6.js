@@ -3,6 +3,7 @@
 // coverGenerator/templates/v6.js
 // Template v6 implementation: clean light background + centered icon + title/subtitle/author.
 
+const { FONT_STACK } = require("../fontConfig");
 const { escapeXml, wrapLines } = require("../typographyEngine");
 const { buildTextureOverlay } = require("../overlayEngine");
 const {
@@ -11,9 +12,6 @@ const {
   randomChoice,
   resolveScaledAvatarSize
 } = require("../utils");
-
-const FONT_STACK =
-  "Inter, 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif";
 
 const LIGHT_COLORS = [
   "#fff7ed",

@@ -3,7 +3,16 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { renderSvgToPng } = require("../src/coverGenerator/pngRenderer");
+const { emboldenSvgTextForPng, renderSvgToPng } = require("../src/coverGenerator/pngRenderer");
+
+test("emboldenSvgTextForPng bumps numeric font weights", () => {
+  const svg = '<text font-weight="600">A</text><text font-weight="800">B</text>';
+  assert.equal(
+    emboldenSvgTextForPng(svg),
+    '<text font-weight="700">A</text><text font-weight="900">B</text>'
+  );
+  assert.equal(emboldenSvgTextForPng(svg, { pngFontWeightBump: 0 }), svg);
+});
 
 test("renderSvgToPng supports custom renderer injection", async () => {
   const output = await renderSvgToPng(

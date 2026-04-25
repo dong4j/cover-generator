@@ -9,6 +9,22 @@ const RESVG_INSTALL_HINT = [
   "  pnpm add @resvg/resvg-js"
 ].join("\n");
 
+function resolvePngFontWeightBump(deps = {}) {
+  if (deps.pngFontWeightBump === undefined) return 100;
+  const bump = Number(deps.pngFontWeightBump);
+  return Number.isFinite(bump) ? Math.max(0, Math.min(400, Math.round(bump))) : 100;
+}
+
+function emboldenSvgTextForPng(svg, deps = {}) {
+  const bump = resolvePngFontWeightBump(deps);
+  if (!bump) return String(svg);
+  return String(svg).replace(/font-weight="(\d+)"/g, (match, value) => {
+    const weight = Number(value);
+    if (!Number.isFinite(weight)) return match;
+    return `font-weight="${Math.min(900, weight + bump)}"`;
+  });
+}
+
 function normalizePngOutput(output) {
   if (!output) throw new Error("PNG renderer returned empty result");
   if (Buffer.isBuffer(output)) return output;
@@ -36,13 +52,14 @@ function loadResvgCtor(deps = {}) {
 }
 
 async function renderSvgToPng(svg, options, deps = {}) {
+  const renderSvg = emboldenSvgTextForPng(svg, deps);
   if (typeof deps.renderPng === "function") {
-    const custom = await deps.renderPng(svg, options);
+    const custom = await deps.renderPng(renderSvg, options);
     return normalizePngOutput(custom);
   }
 
   const Resvg = loadResvgCtor(deps);
-  const resvg = new Resvg(String(svg), {
+  const resvg = new Resvg(renderSvg, {
     fitTo: { mode: "width", value: Math.max(1, Number(options.width) || 1200) }
   });
   const rendered = resvg.render();
@@ -50,5 +67,6 @@ async function renderSvgToPng(svg, options, deps = {}) {
 }
 
 module.exports = {
+  emboldenSvgTextForPng,
   renderSvgToPng
 };

@@ -25,15 +25,15 @@ rsync -avz --progress --delete \
   --exclude '._*' \
   --exclude '__MACOSX' \
   --exclude "deploy.sh" \
-  --exclude "package-lock.json" \
   --exclude "node_modules/" \
   --exclude ".git/" \
+  --exclude "cache/" \
   --exclude "logs/" \
   "$LOCAL_DIR/" "$SSH_ALIAS:$REMOTE_DIR/"
 
 echo "Upload complete."
 
-ssh "$SSH_ALIAS" "source ~/.nvm/nvm.sh && cd \"$REMOTE_DIR\" && mkdir -p logs && if pm2 describe cover-generator >/dev/null 2>&1; then pm2 reload ecosystem.config.cjs --update-env; else pm2 start ecosystem.config.cjs; fi && pm2 save"
+ssh "$SSH_ALIAS" "source ~/.nvm/nvm.sh && cd \"$REMOTE_DIR\" && npm install && mkdir -p logs && if pm2 describe cover-generator >/dev/null 2>&1; then pm2 reload ecosystem.config.cjs --update-env; else pm2 start ecosystem.config.cjs; fi && pm2 save"
 if [ $? -ne 0 ]; then
   echo "Error: Failed to reload cover-generator on server '$SSH_ALIAS'."
   exit 1

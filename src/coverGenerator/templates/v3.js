@@ -3,6 +3,7 @@
 // coverGenerator/templates/v3.js
 // Template v3 implementation: solid/gradient background + top-left avatar + big title + bottom-left author.
 
+const { FONT_STACK } = require("../fontConfig");
 const { renderAvatar } = require("../shapeEngine");
 const { escapeXml, wrapLines } = require("../typographyEngine");
 const { buildTextureOverlay } = require("../overlayEngine");
@@ -12,9 +13,6 @@ const {
   randomChoice,
   resolveScaledAvatarSize
 } = require("../utils");
-
-const FONT_STACK =
-  "Inter, 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif";
 
 const WARM_COLORS = [
   "#ef4444",

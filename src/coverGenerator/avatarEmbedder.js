@@ -1,15 +1,21 @@
 "use strict";
 
+const crypto = require("node:crypto");
 const dns = require("node:dns/promises");
+const fs = require("node:fs/promises");
 const net = require("node:net");
+const path = require("node:path");
 const { createRng, normalizeSeed } = require("./utils");
 
 const AVATAR_FETCH_TIMEOUT_MS = parsePositiveInt(process.env.AVATAR_FETCH_TIMEOUT_MS, 2500);
 const AVATAR_FETCH_MAX_BYTES = parsePositiveInt(process.env.AVATAR_FETCH_MAX_BYTES, 1024 * 1024);
 const AVATAR_CACHE_TTL_MS = parsePositiveInt(process.env.AVATAR_CACHE_TTL_MS, 10 * 60 * 1000);
 const AVATAR_CACHE_MAX_ENTRIES = parsePositiveInt(process.env.AVATAR_CACHE_MAX_ENTRIES, 256);
+const AVATAR_DISK_CACHE_VERSION = "v1";
+const DEFAULT_AVATAR_DISK_CACHE_DIR = path.join(process.cwd(), "cache", "avatar");
 const DNS_LOOKUP_TIMEOUT_MS = parsePositiveInt(process.env.DNS_LOOKUP_TIMEOUT_MS, 1200);
 const DISABLE_AVATAR_EMBED = process.env.DISABLE_AVATAR_EMBED === "1";
+const DISABLE_AVATAR_DISK_CACHE = process.env.DISABLE_AVATAR_DISK_CACHE === "1";
 
 const ALLOWED_MIME_TYPES = new Set([
   "image/png",
@@ -46,6 +52,35 @@ function normalizeTargetFormat(deps = {}) {
 
 function buildAvatarCacheKey(avatarUrl, deps = {}) {
   return `${normalizeTargetFormat(deps)}::${String(avatarUrl)}`;
+}
+
+function resolveAvatarDiskCacheDir(deps = {}) {
+  return deps.avatarCacheDir || process.env.AVATAR_DISK_CACHE_DIR || DEFAULT_AVATAR_DISK_CACHE_DIR;
+}
+
+function buildAvatarDiskCachePath(avatarUrl, deps = {}) {
+  const cacheKey = `${AVATAR_DISK_CACHE_VERSION}::${buildAvatarCacheKey(avatarUrl, deps)}`;
+  const hash = crypto.createHash("sha256").update(cacheKey).digest("hex");
+  return path.join(resolveAvatarDiskCacheDir(deps), `${hash}.txt`);
+}
+
+async function readAvatarDiskCache(avatarUrl, deps = {}) {
+  if (DISABLE_AVATAR_DISK_CACHE || deps.disableAvatarDiskCache) return "";
+  try {
+    const dataUri = await fs.readFile(buildAvatarDiskCachePath(avatarUrl, deps), "utf8");
+    return dataUri.startsWith("data:image/") ? dataUri : "";
+  } catch (err) {
+    if (err && err.code === "ENOENT") return "";
+    return "";
+  }
+}
+
+async function writeAvatarDiskCache(avatarUrl, dataUri, deps = {}) {
+  if (DISABLE_AVATAR_DISK_CACHE || deps.disableAvatarDiskCache || !dataUri) return;
+  const cacheDir = resolveAvatarDiskCacheDir(deps);
+  const cachePath = buildAvatarDiskCachePath(avatarUrl, deps);
+  await fs.mkdir(cacheDir, { recursive: true });
+  await fs.writeFile(cachePath, dataUri, "utf8");
 }
 
 function parsePositiveInt(value, fallback) {
@@ -305,6 +340,17 @@ async function fetchAvatarAsDataUri(avatarUrl, deps = {}) {
   const cacheKey = buildAvatarCacheKey(avatarUrl, deps);
   const cached = getCacheEntry(avatarDataCache, cacheKey);
   if (cached) return cached;
+  const diskCached = await readAvatarDiskCache(avatarUrl, deps);
+  if (diskCached) {
+    setCacheEntry(
+      avatarDataCache,
+      cacheKey,
+      diskCached,
+      AVATAR_CACHE_TTL_MS,
+      AVATAR_CACHE_MAX_ENTRIES
+    );
+    return diskCached;
+  }
   if (inFlightFetches.has(cacheKey)) return inFlightFetches.get(cacheKey);
 
   const task = (async () => {
@@ -352,6 +398,7 @@ async function fetchAvatarAsDataUri(avatarUrl, deps = {}) {
           AVATAR_CACHE_TTL_MS,
           AVATAR_CACHE_MAX_ENTRIES
         );
+        await writeAvatarDiskCache(avatarUrl, dataUri, deps);
         return dataUri;
       } catch {
         // Ignore and try next candidate.
@@ -399,6 +446,7 @@ function clearAvatarEmbedCaches() {
 }
 
 module.exports = {
+  buildAvatarDiskCachePath,
   clearAvatarEmbedCaches,
   fetchAvatarAsDataUri,
   inlineAvatarInOptions

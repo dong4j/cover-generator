@@ -2,6 +2,9 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs/promises");
+const os = require("node:os");
+const path = require("node:path");
 
 const {
   buildCoverOptions,
@@ -11,6 +14,7 @@ const {
   generateCoverSvgAsync
 } = require("../src/coverGenerator");
 const { DEFAULT_AUTHOR, DEFAULT_AVATAR_URLS } = require("../src/config");
+const { buildPngCachePath } = require("../src/coverGenerator/pngCache");
 
 test("generateCoverSvg returns svg", () => {
   const svg = generateCoverSvg(
@@ -97,6 +101,7 @@ test("generateCoverSvgAsync supports avatar embedding pipeline", async () => {
 });
 
 test("generateCoverPngAsync returns PNG bytes with custom renderer", async () => {
+  const pngCacheDir = await fs.mkdtemp(path.join(os.tmpdir(), "cover-png-cache-"));
   const png = await generateCoverPngAsync(
     {
       title: "PNG Cover",
@@ -118,12 +123,43 @@ test("generateCoverPngAsync returns PNG bytes with custom renderer", async () =>
         assert.match(svg, /<svg\b/);
         assert.equal(options.width, 800);
         return Buffer.from([0x89, 0x50, 0x4e, 0x47]);
-      }
+      },
+      pngCacheDir
     }
   );
 
   assert.ok(Buffer.isBuffer(png));
   assert.equal(png.toString("hex"), "89504e47");
+});
+
+test("generateCoverPngAsync reuses cached PNG by title", async () => {
+  const title = "Cached PNG Title";
+  const pngCacheDir = await fs.mkdtemp(path.join(os.tmpdir(), "cover-png-cache-"));
+  let renderCount = 0;
+
+  const deps = {
+    pngCacheDir,
+    renderPng: async () => {
+      renderCount += 1;
+      return Buffer.from([0x89, 0x50, 0x4e, 0x47, renderCount]);
+    }
+  };
+
+  const first = await generateCoverPngAsync({ title, author: "A", seed: "10" }, {}, "v1", deps);
+  const second = await generateCoverPngAsync(
+    { title, author: "B", seed: "11", width: 1600 },
+    {},
+    "v7",
+    deps
+  );
+
+  assert.equal(renderCount, 1);
+  assert.equal(first.toString("hex"), "89504e4701");
+  assert.equal(second.toString("hex"), "89504e4701");
+
+  const cachePath = buildPngCachePath(title, { pngCacheDir });
+  const cached = await fs.readFile(cachePath);
+  assert.equal(cached.toString("hex"), "89504e4701");
 });
 
 test("same seed produces deterministic output", () => {

@@ -3,6 +3,7 @@
 // coverGenerator/templates/v7.js
 // Template v7 implementation: warm pastel gradient + left icon + right text stack.
 
+const { FONT_STACK } = require("../fontConfig");
 const { escapeXml, wrapLines } = require("../typographyEngine");
 const { buildTextureOverlay } = require("../overlayEngine");
 const {
@@ -11,9 +12,6 @@ const {
   randomChoice,
   resolveScaledAvatarSize
 } = require("../utils");
-
-const FONT_STACK =
-  "Inter, 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif";
 
 const PASTEL_COLORS = [
   "#fbd3d1",

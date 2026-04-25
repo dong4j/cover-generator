@@ -71,3 +71,47 @@
 6) 版本策略（何时升版本 vs 加参数）
 - 同一视觉体系内的可选项：优先加参数（不改变默认辨识度）。
 - 布局/默认视觉/排版策略发生明显变化：升版本（v2/v3），保持 v1 行为不变。
+
+
+<claude-mem-context>
+# Memory Context
+
+# [cover-generator] recent context, 2026-04-25 11:53pm GMT+8
+
+Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision 🚨security_alert 🔐security_note
+Format: ID TIME TYPE TITLE
+Fetch details: get_observations([IDs]) | Search: mem-search skill
+
+Stats: 29 obs (9,968t read) | 0t work
+
+### Apr 25, 2026
+202 5:18p 🔵 SVG font display differs between direct browser viewing and blog embedding
+203 5:19p 🟣 PNG caching system implemented for cover generator service
+204 " 🟣 PNG caching integrated into cover generation pipeline
+205 " ✅ Added pngCache.js to package.json check script validation
+206 5:20p ✅ README.md updated with PNG caching documentation
+208 5:23p 🟣 Font weight emboldening implemented for PNG rendering pipeline
+209 " ✅ Test added for font weight emboldening function
+210 " ✅ PNG cache versioning implemented for cache invalidation
+211 5:28p ✅ Cover generator service successfully deployed to m2 server with PNG caching and font emboldening features
+212 5:29p 🔵 Deployment verification reveals transient 404 on PNG endpoints before successful generation
+213 5:53p 🔵 AvatarUrl embedding fails during bulk PNG generation due to redundant network requests
+214 " 🔵 AvatarUrl caching already implemented with TTL and deduplication
+216 5:54p 🟣 Implemented persistent disk caching for avatar data URIs
+217 " ✅ Documented avatar disk caching feature in README
+218 " 🔴 Avatar disk cache returns incompatible MIME types for target format
+219 5:55p 🔴 Fixed test isolation by disabling disk cache in avatar embedder tests
+220 " 🔴 Avatar disk caching test isolation fix verified - all 46 tests passing
+221 " 🟣 Deployed avatar disk caching feature to production
+222 " ✅ Deployed avatar caching with PM2 zero-downtime reload and configured cache directory exclusion
+223 6:02p 🟣 Verified avatar disk caching in production - PNG generation with webp avatar successful
+224 " 🔄 Extracted hardcoded font stacks into centralized Chinese-optimized font configuration
+226 6:03p 🔄 Font stack refactoring in progress - shapeEngine updated, templates pending import updates
+227 " 🔄 Font stack centralization completed - all templates use Chinese-optimized font configuration
+228 " 🔄 Font stack refactoring incomplete - v6 and v7 templates reference FONT_STACK without imports
+229 " 🔄 Font stack centralization completed - v6 and v7 templates updated with FONT_STACK imports
+230 " ✅ Invalidated PNG cache and updated shapeEngine comment after font stack refactoring
+231 6:04p ✅ Added font configuration tests to verify Chinese-optimized font stack composition
+233 6:06p ✅ Deployed font stack refactoring with PM2 reload and verified PNG generation
+234 6:16p 🔵 PM2 command fails with EPERM error on current working directory
+</claude-mem-context>

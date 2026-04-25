@@ -7,6 +7,7 @@
 
 const { generateSVG } = require("./exporter");
 const { inlineAvatarInOptions } = require("./avatarEmbedder");
+const { getOrCreateCachedPng } = require("./pngCache");
 const { renderSvgToPng } = require("./pngRenderer");
 const { DEFAULT_AUTHOR, DEFAULT_AVATAR_URLS } = require("../config");
 const { clamp, createRng, normalizeSeed, randomChoice } = require("./utils");
@@ -124,9 +125,15 @@ async function generateCoverSvgAsync(query, body, templateFromPath, deps = {}) {
 
 async function generateCoverPngAsync(query, body, templateFromPath, deps = {}) {
   const options = buildCoverOptions(query, body, templateFromPath);
-  const resolvedOptions = await inlineAvatarInOptions(options, { ...deps, targetFormat: "png" });
-  const svg = generateSVG(resolvedOptions);
-  return renderSvgToPng(svg, resolvedOptions, deps);
+  return getOrCreateCachedPng(
+    options.title,
+    async () => {
+      const resolvedOptions = await inlineAvatarInOptions(options, { ...deps, targetFormat: "png" });
+      const svg = generateSVG(resolvedOptions);
+      return renderSvgToPng(svg, resolvedOptions, deps);
+    },
+    deps
+  );
 }
 
 function buildRandomCoverOptions(query, body) {
@@ -199,9 +206,15 @@ async function generateRandomCoverSvgAsync(query, body, deps = {}) {
 
 async function generateRandomCoverPngAsync(query, body, deps = {}) {
   const options = buildRandomCoverOptions(query, body);
-  const resolvedOptions = await inlineAvatarInOptions(options, { ...deps, targetFormat: "png" });
-  const svg = generateSVG(resolvedOptions);
-  return renderSvgToPng(svg, resolvedOptions, deps);
+  return getOrCreateCachedPng(
+    options.title,
+    async () => {
+      const resolvedOptions = await inlineAvatarInOptions(options, { ...deps, targetFormat: "png" });
+      const svg = generateSVG(resolvedOptions);
+      return renderSvgToPng(svg, resolvedOptions, deps);
+    },
+    deps
+  );
 }
 
 module.exports = {
