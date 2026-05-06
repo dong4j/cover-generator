@@ -292,11 +292,12 @@ function renderTemplateV1(options) {
   const cardRadius = Math.round(46 * scale);
   const cardPadding = Math.round(110 * scale);
 
+  // 基准 1600×900 下字体「大一号」：主标题/行高/副题/作者各 +4（相对旧版 96/110/44/52）。
   const fontBump = Math.round(2 * scale);
-  const titleFontSize = Math.round(96 * scale) + fontBump;
-  const lineHeight = Math.round(110 * scale);
-  const subtitleFontSize = Math.round(44 * scale) + fontBump;
-  const authorFontSize = Math.round(52 * scale) + fontBump;
+  const titleFontSize = Math.round(100 * scale) + fontBump;
+  const lineHeight = Math.round(114 * scale);
+  const subtitleFontSize = Math.round(48 * scale) + fontBump;
+  const authorFontSize = Math.round(56 * scale) + fontBump;
   // Align v1 footer avatar size rule with v7 for cross-template consistency.
   const avatarSize = resolveScaledAvatarSize(options, scale, 0.5, 96, 168);
 
@@ -318,7 +319,7 @@ function renderTemplateV1(options) {
     maxHeight: Math.max(1, maxTitleHeight),
     fontSize: titleFontSize,
     lineHeight,
-    minFontSize: Math.round(64 * scale),
+    minFontSize: Math.round(68 * scale),
     wrap: wrapLinesV1
   });
   const titleLines = fittedTitle.lines;

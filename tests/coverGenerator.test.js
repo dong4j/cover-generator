@@ -10,10 +10,11 @@ const {
   buildCoverOptions,
   buildRandomCoverOptions,
   generateCoverPngAsync,
+  generateRandomCoverPngAsync,
   generateCoverSvg,
   generateCoverSvgAsync
 } = require("../src/coverGenerator");
-const { DEFAULT_AUTHOR, DEFAULT_AVATAR_URLS } = require("../src/config");
+const { DEFAULT_AVATAR_URLS } = require("../src/config");
 const { buildPngCachePath } = require("../src/coverGenerator/pngCache");
 
 test("generateCoverSvg returns svg", () => {
@@ -132,7 +133,7 @@ test("generateCoverPngAsync returns PNG bytes with custom renderer", async () =>
   assert.equal(png.toString("hex"), "89504e47");
 });
 
-test("generateCoverPngAsync reuses cached PNG by title", async () => {
+test("generateCoverPngAsync reuses cached PNG by title, template, and author", async () => {
   const title = "Cached PNG Title";
   const pngCacheDir = await fs.mkdtemp(path.join(os.tmpdir(), "cover-png-cache-"));
   let renderCount = 0;
@@ -147,9 +148,9 @@ test("generateCoverPngAsync reuses cached PNG by title", async () => {
 
   const first = await generateCoverPngAsync({ title, author: "A", seed: "10" }, {}, "v1", deps);
   const second = await generateCoverPngAsync(
-    { title, author: "B", seed: "11", width: 1600 },
+    { title, author: "A", seed: "11", width: 1600 },
     {},
-    "v7",
+    "v1",
     deps
   );
 
@@ -157,7 +158,13 @@ test("generateCoverPngAsync reuses cached PNG by title", async () => {
   assert.equal(first.toString("hex"), "89504e4701");
   assert.equal(second.toString("hex"), "89504e4701");
 
-  const cachePath = buildPngCachePath(title, { pngCacheDir });
+  await generateCoverPngAsync({ title, author: "B", seed: "12" }, {}, "v1", deps);
+  assert.equal(renderCount, 2);
+
+  const cachePath = buildPngCachePath(
+    { mode: "cover", template: "v1", title, author: "A" },
+    { pngCacheDir }
+  );
   const cached = await fs.readFile(cachePath);
   assert.equal(cached.toString("hex"), "89504e4701");
 });
@@ -484,13 +491,31 @@ test("v7 renders author near avatar", () => {
   assert.match(svg, /text-anchor="middle"/);
 });
 
-test("random cover uses fixed author and allowed assets", () => {
+test("generateRandomCoverPngAsync reuses cache by title and author (random namespace)", async () => {
+  const pngCacheDir = await fs.mkdtemp(path.join(os.tmpdir(), "cover-png-random-cache-"));
+  let renderCount = 0;
+  const deps = {
+    pngCacheDir,
+    renderPng: async () => {
+      renderCount += 1;
+      return Buffer.from([0x89, 0x50, 0x4e, 0x47, renderCount]);
+    }
+  };
+  const query = { title: "R Title", author: "@a" };
+  const first = await generateRandomCoverPngAsync(query, {}, deps);
+  const second = await generateRandomCoverPngAsync(query, {}, deps);
+  assert.equal(renderCount, 1);
+  assert.equal(first.toString("hex"), second.toString("hex"));
+});
+
+test("random cover requires author and picks template randomly", () => {
+  assert.throws(() => buildRandomCoverOptions({ seed: 123, title: "Random Title" }, {}), /author is required/);
   const options = buildRandomCoverOptions(
-    { seed: 123, template: "v6", title: "Random Title" },
+    { seed: 123, title: "Random Title", author: "@dong4j" },
     {}
   );
-  assert.equal(options.author, DEFAULT_AUTHOR);
-  assert.equal(options.template, "v6");
+  assert.equal(options.author, "@dong4j");
+  assert.ok(/^v[1-7]$/.test(options.template));
   if (options.avatarUrl) {
     assert.ok(DEFAULT_AVATAR_URLS.includes(options.avatarUrl));
     assert.equal(options.avatarEmoji, "");

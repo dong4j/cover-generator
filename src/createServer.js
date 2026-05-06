@@ -8,6 +8,26 @@ const { URL } = require("node:url");
 
 const DEFAULT_MAX_BODY_BYTES = 512 * 1024;
 
+function isTruthyFlag(value) {
+  if (value === undefined || value === null) return false;
+  const normalized = String(value).trim().toLowerCase();
+  return ["1", "true", "yes", "y", "on"].includes(normalized);
+}
+
+function assertRandomizeRequiresVersion(pathname, query, body) {
+  const payload = { ...query, ...(body || {}) };
+  if (!isTruthyFlag(payload.randomize)) return;
+  if (pathname === "/cover/random" || pathname === "/cover/random/png") return;
+  const versioned =
+    /^\/cover\/svg\/(v1|v2|v3|v4|v5|v6|v7)$/.test(pathname) ||
+    /^\/cover\/png\/(v1|v2|v3|v4|v5|v6|v7)$/.test(pathname);
+  if (!versioned) {
+    throw new Error(
+      "randomize requires an explicit template version in the path (e.g. /cover/png/v1 or /cover/svg/v1)"
+    );
+  }
+}
+
 function parseJSONBody(req, maxBodyBytes) {
   return new Promise((resolve, reject) => {
     const chunks = [];
@@ -88,6 +108,8 @@ async function handleCoverRequest(req, res, url, templateFromPath, format, deps)
       req.method === "POST"
         ? await parseJSONBody(req, deps.maxBodyBytes)
         : Object.create(null);
+    const query = Object.fromEntries(url.searchParams);
+    assertRandomizeRequiresVersion(url.pathname, query, body);
     if (format === "png") {
       if (
         typeof deps.generateCoverPng !== "function" ||
@@ -177,5 +199,6 @@ function createServer({
 
 module.exports = {
   DEFAULT_MAX_BODY_BYTES,
+  assertRandomizeRequiresVersion,
   createServer
 };

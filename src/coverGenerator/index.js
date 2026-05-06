@@ -9,7 +9,7 @@ const { generateSVG } = require("./exporter");
 const { inlineAvatarInOptions } = require("./avatarEmbedder");
 const { getOrCreateCachedPng } = require("./pngCache");
 const { renderSvgToPng } = require("./pngRenderer");
-const { DEFAULT_AUTHOR, DEFAULT_AVATAR_URLS } = require("../config");
+const { DEFAULT_AVATAR_URLS } = require("../config");
 const { clamp, createRng, normalizeSeed, randomChoice } = require("./utils");
 const RANDOM_BACKGROUNDS = ["solid", "gradient"];
 const RANDOM_TEXTURES = ["", "grid", "graph", "dots", "circuit"];
@@ -125,8 +125,14 @@ async function generateCoverSvgAsync(query, body, templateFromPath, deps = {}) {
 
 async function generateCoverPngAsync(query, body, templateFromPath, deps = {}) {
   const options = buildCoverOptions(query, body, templateFromPath);
+  const cacheDescriptor = {
+    mode: "cover",
+    template: options.template,
+    title: options.title,
+    author: options.author
+  };
   return getOrCreateCachedPng(
-    options.title,
+    cacheDescriptor,
     async () => {
       const resolvedOptions = await inlineAvatarInOptions(options, { ...deps, targetFormat: "png" });
       const svg = generateSVG(resolvedOptions);
@@ -138,8 +144,11 @@ async function generateCoverPngAsync(query, body, templateFromPath, deps = {}) {
 
 function buildRandomCoverOptions(query, body) {
   const payload = { ...query, ...(body || {}) };
-  if (!payload.title) {
+  if (!payload.title || !String(payload.title).trim()) {
     throw new Error("title is required");
+  }
+  if (!hasMeaningfulPayloadValue(payload, "author")) {
+    throw new Error("author is required");
   }
   const width = parseInt(payload.width, 10);
   const height = parseInt(payload.height, 10);
@@ -153,12 +162,9 @@ function buildRandomCoverOptions(query, body) {
   const rng = createRng(options.seed);
 
   const templates = ["v1", "v2", "v3", "v4", "v5", "v6", "v7"];
-  const templateParam = payload.template ? String(payload.template).toLowerCase() : "";
-  options.template = templates.includes(templateParam)
-    ? templateParam
-    : randomChoice(templates, rng);
+  options.template = randomChoice(templates, rng);
 
-  options.author = DEFAULT_AUTHOR;
+  options.author = String(payload.author).slice(0, 80);
 
   const subtitles = [
     "The best directory for indie makers",
@@ -205,10 +211,20 @@ async function generateRandomCoverSvgAsync(query, body, deps = {}) {
 }
 
 async function generateRandomCoverPngAsync(query, body, deps = {}) {
-  const options = buildRandomCoverOptions(query, body);
+  const payload = { ...query, ...(body || {}) };
+  if (!payload.title || !String(payload.title).trim()) {
+    throw new Error("title is required");
+  }
+  if (!hasMeaningfulPayloadValue(payload, "author")) {
+    throw new Error("author is required");
+  }
+  const title = String(payload.title).slice(0, 140);
+  const author = String(payload.author).slice(0, 80);
+  const cacheDescriptor = { mode: "random", title, author };
   return getOrCreateCachedPng(
-    options.title,
+    cacheDescriptor,
     async () => {
+      const options = buildRandomCoverOptions(query, body);
       const resolvedOptions = await inlineAvatarInOptions(options, { ...deps, targetFormat: "png" });
       const svg = generateSVG(resolvedOptions);
       return renderSvgToPng(svg, resolvedOptions, deps);

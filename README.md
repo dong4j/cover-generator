@@ -35,13 +35,53 @@ npm run check
 npm test
 ```
 
+### PNG 缓存文件名迁移（v3 → v4）
+
+旧版缓存文件名为 `*-v3-*.png`（仅按标题哈希）；新版为 `*-v4-*.png`（`template + title + author` 材料哈希）。**不会删除**旧文件，只做 `mv` 重命名。
+
+在**装有 Hexo `source/_posts` 的机器**上执行（脚本根据每篇文章 `cover:` 里的 `api.dong4j.site/cover/png/vN?title=...&author=...` 推算旧名与新名）：
+
+```bash
+# 仅预览（统计与完整 mv 列表在 stdout）
+node scripts/migrate-png-cache-v3-to-v4.js --posts /path/to/hexo/source/_posts 2>/dev/null | head
+
+# 在缓存所在机器上执行（示例：本机路径）
+node scripts/migrate-png-cache-v3-to-v4.js \
+  --posts /path/to/hexo/source/_posts \
+  --cache-dir /path/to/cover-generator/cache/png \
+  --apply
+```
+
+远程可先拼 shell：`(echo 'cd "/remote/cache/png"'; node ... 2>/dev/null | grep '^mv -n') | ssh host bash -s`。
+
+未在文章 `cover` 中出现过的标题（例如手工打 API 测出来的 `1-https` 等）**无法自动映射**，会留在 `*-v3-*.png`，可手动改名或删图后让服务按新 key 重新生成。
+
+### 按「已发布目录」裁剪远端 PNG 缓存
+
+仅扫描 **`source/_posts/publish`**（recursive）里 front matter 的 `cover:`，按当前 v4 规则得到**允许保留**的文件名集合；缓存目录里其它 `*.png` 一律视为无效（默认 dry-run，加 `--apply` 删除）。
+
+```bash
+node scripts/prune-png-cache-by-publish.js \
+  --publish-root /path/to/hexo/source/_posts/publish \
+  --ssh-host m2 \
+  --remote-cache-dir /path/on/server/cover-generator/cache/png
+# 确认 stdout 列出的待删文件后：
+node scripts/prune-png-cache-by-publish.js \
+  --publish-root /path/to/hexo/source/_posts/publish \
+  --ssh-host m2 \
+  --remote-cache-dir /path/on/server/cover-generator/cache/png \
+  --apply
+```
+
+仅放在 `publish` 外、但仍线上使用的文章，其封面若未出现在该目录的 `cover` 里，对应缓存会被删掉，下次请求会重新生成。
+
 ## API
 
 - `GET /health`：健康检查
 - `GET /cover` 或 `GET /cover/svg`：生成封面（默认模板 `v1`）
 - `GET /cover/png`：生成 PNG 封面（默认模板 `v1`）
-- `GET /cover/random`：随机封面（除作者外随机，支持 `template` 指定模板版本）
-- `GET /cover/random/png`：随机 PNG 封面
+- `GET /cover/random`：随机封面（`title` + `author` 必填；模板 `v1`–`v7` 服务端随机，调用方不可指定）
+- `GET /cover/random/png`：随机 PNG 封面（同上；PNG 缓存 key 为 `random + title + author`）
 - `GET /cover/svg/v1`：显式指定模板 `v1`
 - `GET /cover/png/v1`：显式指定模板 `v1` 的 PNG 输出
 - `GET /cover/svg/v2`：显式指定模板 `v2`（左侧大头像 + 右侧卡片文案）
@@ -58,9 +98,9 @@ npm test
 
 博客封面建议优先使用 PNG 接口。SVG 接口仍然保留，适合需要矢量输出或继续调试模板的场景，但 SVG 在浏览器、博客主题、系统字体、Web Font 加载方式不同的环境下，可能出现字体渲染差异。尤其是中英文混排标题，直接打开 SVG 和嵌入博客页面时，浏览器命中的字体不一定完全一致。
 
-PNG 接口现在已经做了服务端渲染和缓存优化：首次请求实时生成 PNG，后续同标题请求直接返回缓存文件。这样可以把字体渲染固定在服务端环境中，减少客户端字体差异，也避免每次请求都重新执行 SVG -> PNG 渲染。
+PNG 接口现在已经做了服务端渲染和缓存优化：首次请求实时生成 PNG，后续命中同一缓存 key 时直接返回缓存文件。这样可以把字体渲染固定在服务端环境中，减少客户端字体差异，也避免每次请求都重新执行 SVG -> PNG 渲染。
 
-PNG 缓存默认目录为 `cache/png`，可通过环境变量 `COVER_PNG_CACHE_DIR` 覆盖。缓存 key 只基于归一化后的 `title`，因此同标题但不同模板、颜色、尺寸、作者的 PNG 请求会复用同一张图片；如需刷新，请删除对应缓存文件或更换标题。`randomize=1` 只会在首次无缓存生成时生效，后续同标题会返回第一次生成的缓存结果。
+PNG 缓存默认目录为 `cache/png`，可通过环境变量 `COVER_PNG_CACHE_DIR` 覆盖。缓存 key 由 **`template`（或全随机命名空间 `random`）+ 归一化 `title` + 归一化 `author`** 派生：同一 key 下 `randomize=1` 或 `/cover/random/png` 只在**首次无缓存**时随机生成并落盘，之后请求固定返回该文件；不同模板、不同作者会落到不同 key。如需刷新，删除对应缓存文件或改动标题/作者/模板路径即可。
 
 远程头像也会落盘缓存：首次成功下载并内嵌后保存到 `cache/avatar`，后续同 `avatarUrl + 输出格式` 会直接复用缓存，避免批量生成时反复请求头像源站。可通过 `AVATAR_DISK_CACHE_DIR` 覆盖目录，或用 `DISABLE_AVATAR_DISK_CACHE=1` 关闭。
 
@@ -73,7 +113,7 @@ PNG 缓存默认目录为 `cache/png`，可通过环境变量 `COVER_PNG_CACHE_D
 | `subtitle`    | string        | empty                       | 副标题/摘要，可选。                                                   |
 | `author`      | string        | `Anonymous`                 | 作者占位符，可传任意字符串（如 `@dong4j`）。                                  |
 | `seed`        | number/string | hash(title+author+template) | 控制可复现随机；同 seed+输入 输出一致（`randomize=1` 时会被忽略）。                 |
-| `randomize`   | bool-like     | `false`                     | 传 `1/true/on/yes` 可开启“同参数每次不同”；会为当前请求生成临时 seed。              |
+| `randomize`   | bool-like     | `false`                     | 传 `1/true/on/yes` 会在**该模板版本内**随机背景/纹理等，并生成临时 seed；**必须与路径版本同时使用**（如 `GET /cover/png/v1?...&randomize=1`），不可用于 `/cover/png` 或无版本的 `/cover`、`/cover/svg`。 |
 | `width`       | number        | 1200                        | 300–4000。                                                    |
 | `height`      | number        | 630                         | 300–4000。                                                    |
 | `background`  | string        | `auto`                      | `auto` \| `solid` \| `gradient`。`auto` 会在暖色系纯色/渐变中随机选择。        |
@@ -91,9 +131,9 @@ PNG 缓存默认目录为 `cache/png`，可通过环境变量 `COVER_PNG_CACHE_D
 
 ## 随机封面（/cover/random）
 
-- 作者固定使用配置默认值（见 `src/config.js`）。
-- 必须提供 `title`，否则返回 400。
-- `template` 可选：指定模板版本；不传则随机选择。
+- 必须同时提供 **`title` 与 `author`**，否则返回 400。
+- **模板版本在服务端随机**（`v1`–`v7`），调用方不可指定 `template`（传参也会被忽略）。
+- 作者与标题来自请求参数（用于文案与 **PNG 缓存命名空间**：全随机 PNG 使用 `random + title + author`，首次生成后同参固定）。
 - `avatarUrl` 不接受外部输入；仅在内置头像列表中随机。
 
 ## v2 说明
@@ -314,13 +354,13 @@ curl -X POST "http://localhost:4321/cover/svg/v7" \
     "texture": "dots"
   }' > cover.svg
 
-# /cover/random（随机封面）
-curl "http://localhost:4321/cover/random?title=IndieHub&template=v7" > cover.svg
+# /cover/random（随机封面，需 title + author）
+curl "http://localhost:4321/cover/random?title=IndieHub&author=%40dong4j" > cover.svg
 curl -X POST "http://localhost:4321/cover/random" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "IndieHub",
-    "template": "v6"
+    "author": "@dong4j"
   }' > cover.svg
 ```
 
